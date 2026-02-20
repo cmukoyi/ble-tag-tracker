@@ -1,540 +1,256 @@
 # BLE Tag Tracker 🏷️
 
-A production-ready, mobile-first PWA for tracking BLE tags and vehicles in real-time with Google Maps/OpenStreetMap integration.
+A production-ready Progressive Web App (PWA) for real-time tracking of BLE tags and vehicles with Google Maps/OpenStreetMap integration.
 
-## 🚀 Production Deployment (NEW!)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**Ready to deploy?** This app is production-ready with enterprise features:
+## ✨ Features
 
-- ✅ OAuth credentials secured in environment variables
-- ✅ Production/debug mode toggle
-- ✅ Docker & Docker Compose support
-- ✅ Cloud deployment ready (Heroku, Azure, AWS)
-- ✅ Mobile network deployment
-- ✅ Optimized performance
+- 🗺️ **Real-time Location Tracking** - View vehicle locations on interactive maps
+- 🌍 **Multiple Map Providers** - Toggle between Google Maps and OpenStreetMap
+- 📱 **Mobile-First PWA** - Install as a native app on mobile devices
+- 🚗 **Live Vehicle Data** - Real-time updates via mzone API integration
+- 🎯 **Smart Markers** - Color-coded status indicators (Green = Ignition ON, Red = OFF)
+- 📍 **Address Resolution** - Automatic address display from coordinates
+- 📷 **QR Code Scanner** - Quick vehicle enrollment via QR scanning
+- 🔐 **Secure Authentication** - OAuth 2.0 token-based API access
+- 💾 **Offline Support** - Service worker caching for offline functionality
+- 📊 **Data Export** - Export vehicle data to Excel/CSV formats
+- 🔄 **Auto-refresh** - Configurable automatic data updates
+- 📱 **Share Location** - Share vehicle locations via native sharing
 
-### Quick Deploy (15 minutes)
+## 🚀 Quick Start
 
-```powershell
-# 1. Configure credentials
-cd backend
-copy .env.example .env
-notepad .env  # Edit with your credentials
+### Prerequisites
 
-# 2. Deploy
-.\DEPLOY_PRODUCTION.ps1  # Windows
-# or
-./deploy_production.sh   # Linux/Mac
-# or
-docker-compose up -d     # Docker
-```
+- Python 3.8 or higher
+- Git
+- Modern web browser (Chrome, Firefox, Safari, Edge)
 
-### 📖 Production Guides
+### Local Development
 
-- **[QUICKSTART.md](QUICKSTART.md)** - 15-minute deployment guide
-- **[README_PRODUCTION.md](README_PRODUCTION.md)** - Complete production guide
-- **[PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md)** - Step-by-step checklist  
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Advanced deployment options
-- **[PRODUCTION_SUMMARY.md](PRODUCTION_SUMMARY.md)** - What changed for production
-
----
-
-## Features ✨
-
-- 🗺️ **Real-time Location Tracking** - View vehicle locations on interactive map
-- 🌍 **Multiple Map Providers** - Choose between Google Maps or OpenStreetMap
-- 📱 **Mobile-First PWA** - Install as app on mobile devices
-- 🚗 **Live Vehicle Data** - Integrated with mzone API for real-time vehicle information
-- 🎯 **Ignition Status** - Color-coded markers (Green = ON, Red = OFF)
-- 📍 **Address Display** - Shows full address from API location data
-- 📷 **QR Code Scanner** - Quickly add vehicles by scanning QR codes
-- ⌨️ **Manual Entry** - Enter Vehicle ID (GUID) or IMEI manually
-- 💾 **Persistent Storage** - Automatically saves your vehicles (localStorage)
-- 🔄 **Auto-Refresh** - Automatic location updates every 10 minutes
-- 🏷️ **Custom Names** - Edit vehicle descriptions for easy identification
-- 🗑️ **Vehicle Management** - Remove individual vehicles or clear all at once
-- 🔐 **Automatic OAuth** - Background authentication via secure backend
-- 📊 **Trip History** - View and plot historical trip routes
-- ⚙️ **Settings Panel** - Account management, devices, preferences
-- 📴 **Offline Support** - Service worker for offline functionality
-
-## Map Provider Configuration 🗺️
-
-You can choose between **Google Maps** or **OpenStreetMap**:
-
-**To use Google Maps** (default):
-```javascript
-// In js/map.js - CONFIG object
-MAP_PROVIDER: 'google',
-GOOGLE_MAPS_API_KEY: '',  // Optional - works without API key for testing
-```
-
-**To use OpenStreetMap** (free, no API key needed):
-```javascript
-// In js/map.js - CONFIG object
-MAP_PROVIDER: 'osm',
-```
-
-**Google Maps Tile Types:**
-- `roadmap` - Standard road map (default)
-- `satellite` - Satellite imagery
-- `hybrid` - Satellite with road overlay
-- `terrain` - Terrain map
-
-Change the tile type by modifying the lyrs parameter in `initMap()`:
-- Roadmap: `lyrs=m`
-- Satellite: `lyrs=s`
-- Hybrid: `lyrs=y`
-- Terrain: `lyrs=p`
-
-## mzone API Integration 🔌
-
-This app is configured to use the **mzone API** for vehicle tracking:
-
-### API Configuration
-
-```javascript
-API_BASE_URL: 'https://live.mzoneweb.net/mzone62.api'
-Endpoint: '/LastKnownPositions?$format=json&$filter=vehicle_Id eq [VEHICLE_ID]'
-```
-
-### Authentication ⚠️ IMPORTANT
-
-The mzone API requires OAuth2 authentication with a **Bearer Token**. 
-
-**⚠️ CORS Issue:** Due to browser security restrictions (CORS policy), the authentication endpoint cannot be called directly from the browser. The app handles this gracefully:
-
-**How it works now:**
-1. **App starts immediately** - Map loads without waiting for authentication
-2. **Background authentication** - OAuth token is fetched in the background (non-blocking)
-3. **Graceful degradation** - If authentication fails, the app still works but API calls will fail
-4. **Manual token option** - You can manually set a token if needed (see below)
-
-**If authentication fails due to CORS:**
-1. Open browser console (F12)
-2. Run this Python script to get a valid token:
-   ```python
-   import requests
-   
-   url = "https://login.mzoneweb.net/connect/token"
-   params = {
-       'client_id': 'mz-scopeuk',
-       'client_secret': 'g_SkQ.B.z3TeBU$g#hVeP#c2',
-       'username': 'ScopeUKAPI',
-       'password': 'ScopeUKAPI01!',
-       'scope': 'mz6-api.all mz_username',
-       'grant_type': 'password',
-       'response_type': 'code id_token'
-   }
-   
-   response = requests.post(url, data=params)
-   print(response.json()['access_token'])
-   ```
-3. Copy the token and paste in browser console:
-   ```javascript
-   authToken = "YOUR_TOKEN_HERE"
-   tokenExpiration = Date.now() + 3600000  // 1 hour
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/cmukoyi/ble-tag-tracker.git
+   cd ble-tag-tracker
    ```
 
-**OAuth Credentials** (in `js/map.js`):
-```javascript
-CONFIG.OAUTH: {
-    CLIENT_ID: 'mz-scopeuk',
-    CLIENT_SECRET: 'g_SkQ.B.z3TeBU$g#hVeP#c2',
-    USERNAME: 'ScopeUKAPI',
-    PASSWORD: 'ScopeUKAPI01!',
-    SCOPE: 'mz6-api.all mz_username',
-    GRANT_TYPE: 'password'
-}
-```
+2. **Set up environment**
+   ```bash
+   # Create virtual environment
+   python -m venv venv
+   
+   # Activate (Windows)
+   .\venv\Scripts\activate
+   
+   # Activate (Linux/Mac)
+   source venv/bin/activate
+   
+   # Install dependencies
+   pip install -r backend/requirements.txt
+   ```
 
-**⚠️ Security Warning:**
-These credentials are visible in the client-side JavaScript code. For production environments:
-- **Recommended**: Use a backend proxy/server to handle authentication
-- Store credentials server-side only
-- Never expose client secrets in browser code
+3. **Configure credentials**
+   ```bash
+   cd backend
+   cp .env.example .env
+   # Edit .env with your OAuth credentials
+   ```
 
-**Production Solution:**
-Create a simple backend endpoint that:
-1. Receives requests from your app
-2. Authenticates with mzone API server-side
-3. Returns the token to your app
-4. This bypasses CORS and keeps credentials secure
+4. **Run the application**
+   ```bash
+   python app.py
+   ```
 
-### Expected API Response Format
+5. **Access the app**
+   - Open browser to `http://localhost:5000`
+   - For mobile access: `http://YOUR_IP:5000`
 
-```json
-{
-  "@odata.context": "https://live.mzoneweb.net/mzone62.api/$metadata#LastKnownPositions",
-  "value": [{
-    "vehicle_Id": "72753c0d-4202-4836-bf9a-aaa30fedefc4",
-    "vehicle_Description": "Chris Credit Card",
-    "utcTimestamp": "2026-02-19T20:07:42Z",
-    "latitude": 53.40807,
-    "longitude": -2.34979,
-    "locationDescription": "Clough Avenue, Trafford, M33 4HU",
-    "direction": 0.00,
-    "eventType_Description": "Heartbeat",
-    "ignitionOn": false,
-    "vehicleDisabled": false
-  }]
-}
-```
-
-### Data Mapping
-
-The app extracts and displays:
-- **Vehicle Name**: `vehicle_Description` → "Chris Credit Card"
-- **Location**: `latitude`, `longitude` → Map marker position
-- **Address**: `locationDescription` → "Clough Avenue, Trafford, M33 4HU"
-- **Ignition Status**: `ignitionOn` → Marker color (Green/Red) and status badge
-- **Event Type**: `eventType_Description` → "Heartbeat", "Journey Start", etc.
-- **Timestamp**: `utcTimestamp` → "Last Updated" time
-
-## Project Structure 📁
-
-```
-bleTags/
-├── index.html          # Main HTML page
-├── css/
-│   └── style.css       # Mobile-first CSS styling
-├── js/
-│   ├── map.js          # Map management & API integration
-│   └── scanner.js      # QR code scanning logic
-└── README.md           # Documentation (this file)
-```
-
-## Quick Start 🚀
-
-### 1. **Open the App**
-
-Simply open `index.html` in a web browser:
+## 🐳 Docker Deployment
 
 ```bash
-# Using Python's built-in server (recommended for testing)
-cd C:\Users\Carlos Mukoyi\Documents\code\FunTools\bleTags
-python -m http.server 8000
+# Build and run with Docker Compose
+docker-compose up -d
 
-# Then open: http://localhost:8000
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
 ```
 
-Or use any static file server:
-- **VS Code Live Server Extension**
-- **Node.js `http-server`**: `npx http-server`
-- **PHP**: `php -S localhost:8000`
+## ☁️ Production Deployment
 
-### 2. **Test with Sample Vehicle**
+### Linux Server
 
-Try the test page first:
-- Open `test_vehicle.html` for step-by-step instructions
-- Test Vehicle ID: `72753c0d-4202-4836-bf9a-aaa30fedefc4`
-- Expected result: Vehicle "Chris Credit Card" plotted in Manchester, UK
+See [LINUX_DEPLOY.md](LINUX_DEPLOY.md) for detailed Linux deployment instructions including:
+- Systemd service setup
+- Nginx reverse proxy configuration
+- SSL with Let's Encrypt
+- Firewall configuration
 
-### 3. **Add a Vehicle**
+### Cloud Platforms
 
-Two ways to add vehicles:
-
-1. **Scan QR Code**
-   - Click the blue + button
-   - Click "Scan QR Code"
-   - Grant camera permissions
-   - Scan QR code containing Vehicle ID or IMEI
-
-2. **Manual Entry**
-   - Click the blue + button
-   - Enter Vehicle ID (GUID format like `72753c0d-4202-4836-bf9a-aaa30fedefc4`)
-   - Or enter 15-digit IMEI
-   - Click "Add"
-
-### 4. **Manage Your Saved Vehicles**
-
-Your vehicles are automatically saved to your browser's localStorage and will persist across sessions.
-
-**View Saved Vehicles:**
-- Click the menu button (☰) in the top right
-- See a list of all your saved vehicles
-- Click any vehicle to center the map on it
-
-**Edit Vehicle Name:**
-- Click a marker on the map to open the info panel
-- Click the pencil ✏️ icon next to the vehicle name
-- Enter a custom name (e.g., "Company Car", "Delivery Van")
-- Press Enter or click ✓ to save
-
-**Remove a Single Vehicle:**
-- Method 1: In the saved vehicles list, click the trash icon next to a vehicle
-- Method 2: Click a marker on the map, then click "Remove Tag" in the info panel
-
-**Clear All Vehicles:**
-- Click the menu button (☰)
-- Click "Clear All Tags" at the bottom
-- Confirm to remove all tracked vehicles
-
-**Auto-Load on Refresh:**
-- All saved vehicles automatically load when you open the app
-- No need to re-add tags after closing the browser
-
-## Backend API Requirements 🔌
-
-Your backend API must provide the following endpoints:
-
-### **GET** `/api/tags/:imei/location`
-
-Fetch location data for a specific tag.
-
-**Response:**
-```json
-{
-  "imei": "868695060734355",
-  "latitude": -26.2041,
-  "longitude": 28.0473,
-  "timestamp": "2026-02-19T10:30:00Z",
-  "battery": 85,
-  "address": "Sandton, Johannesburg"
-}
+**Heroku:**
+```bash
+heroku create your-app-name
+git push heroku main
 ```
 
-### **GET** `/api/tags`
-
-Fetch all tracked tags.
-
-**Response:**
-```json
-{
-  "tags": [
-    {
-      "imei": "868695060734355",
-      "latitude": -26.2041,
-      "longitude": 28.0473,
-      "timestamp": "2026-02-19T10:30:00Z",
-      "battery": 85
-    }
-  ]
-}
+**Docker Hub:**
+```bash
+docker build -t your-username/ble-tag-tracker .
+docker push your-username/ble-tag-tracker
 ```
 
-### **POST** `/api/tags`
+## 📁 Project Structure
 
-Add a new tag to be tracked.
-
-**Request:**
-```json
-{
-  "imei": "868695060734355"
-}
+```
+ble-tag-tracker/
+├── backend/
+│   ├── app.py              # Flask backend server
+│   ├── requirements.txt    # Python dependencies
+│   ├── .env.example        # Environment template
+│   └── .gitignore
+├── js/
+│   ├── map.js             # Main application logic
+│   └── scanner.js         # QR code scanner
+├── css/
+│   └── style.css          # Application styles
+├── icons/                 # PWA icons
+├── index.html            # Main HTML file
+├── manifest.json         # PWA manifest
+├── service-worker.js     # Service worker for offline support
+├── Dockerfile            # Docker configuration
+├── docker-compose.yml    # Docker Compose setup
+└── README.md            # This file
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Tag added successfully"
-}
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `backend/.env` file with your credentials:
+
+```env
+# OAuth Configuration
+TOKEN_URL=https://login.mzoneweb.net/connect/token
+CLIENT_ID=your_client_id
+CLIENT_SECRET=your_client_secret
+OAUTH_USERNAME=your_username
+OAUTH_PASSWORD=your_password
+SCOPE=mz6-api.all mz_username
+GRANT_TYPE=password
+RESPONSE_TYPE=code id_token
+
+# Server Configuration
+FLASK_ENV=production
+HOST=0.0.0.0
+PORT=5000
+DEBUG=False
 ```
 
-## QR Code Formats Supported 📷
+### Frontend Configuration
 
-The app can extract IMEI from various QR code formats:
+Edit `js/map.js` for frontend settings:
+- Map provider (Google Maps / OpenStreetMap)
+- Refresh intervals
+- Debug mode
+- Backend URL
 
-1. **MHub Format**: `MHub369F:IMEI868695060772926:MAC00:11:22:33:44:55`
-2. **Plain IMEI**: `868695060734355`
-3. **JSON**: `{"imei": "868695060734355", "name": "Tag 1"}`
-4. **Key-Value**: `imei=868695060734355`
-5. **URL**: `https://example.com/imei/868695060734355`
+## 🛠️ Technology Stack
 
-## Configuration Options ⚙️
+**Backend:**
+- Flask 3.0 - Python web framework
+- Flask-CORS - Cross-origin resource sharing
+- Requests - HTTP library
+- Gunicorn - WSGI HTTP server
 
-Edit `js/map.js` to customize:
+**Frontend:**
+- Vanilla JavaScript (ES6+)
+- Leaflet.js - Interactive maps
+- Google Maps API - Alternative map provider
+- Lucide Icons - Icon library
+- SheetJS - Excel export functionality
 
-```javascript
-const CONFIG = {
-    // API Settings
-    API_BASE_URL: 'http://localhost:5000/api',
-    
-    // Map Settings
-    DEFAULT_CENTER: [-26.2041, 28.0473],  // [Latitude, Longitude]
-    DEFAULT_ZOOM: 13,
-    
-    // Auto-refresh interval (milliseconds)
-    REFRESH_INTERVAL: 30000,  // 30 seconds
-    
-    // LocalStorage Settings
-    STORAGE_KEY: 'bleTracker_savedTags',  // Change to use different storage key
-};
-```
+**Infrastructure:**
+- Docker & Docker Compose
+- Nginx (optional reverse proxy)
+- Let's Encrypt (SSL certificates)
 
-**LocalStorage Details:**
-- Tags are saved automatically when added
-- Storage key: `bleTracker_savedTags` (customizable)
-- Data format: Array of IMEI strings
-- Tags persist across browser sessions
-- Clearing browser data will remove saved tags
+## 📱 PWA Features
 
-## Development Mode (Mock Data) 🧪
+- **Installable** - Add to home screen on mobile and desktop
+- **Offline capable** - Service worker caching
+- **Responsive** - Mobile-first design
+- **Fast** - Optimized performance
+- **Secure** - HTTPS required in production
 
-The app includes mock data generation for testing without a backend:
+## 🔐 Security
 
-- Automatically generates random locations near Johannesburg
-- Random battery levels (60-100%)
-- Current timestamps
+- ✅ OAuth credentials stored in `.env` (never committed)
+- ✅ CORS protection
+- ✅ Token-based authentication
+- ✅ Secure HTTPS in production
+- ✅ Environment variable validation
+- ✅ Input sanitization
 
-**To disable mock data:** Update the `fetchTagLocation()` function in `js/map.js`:
+## 📄 API Integration
 
-```javascript
-async function fetchTagLocation(imei) {
-    try {
-        const url = CONFIG.API_BASE_URL + CONFIG.API_ENDPOINTS.getLocation.replace(':imei', imei);
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
-        }
-        
-        return await response.json();
-    } catch (error) {
-        console.error(`Failed to fetch location for ${imei}:`, error);
-        throw error;  // ← Remove mock data fallback
-    }
-}
-```
+This app integrates with the **mzone API** for vehicle tracking:
+- OAuth 2.0 authentication
+- Real-time vehicle location data
+- Historical route information
+- Device management
 
-## Browser Requirements 📱
+## 🤝 Contributing
 
-### **Desktop**
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-### **Mobile**
-- iOS Safari 14+
-- Chrome for Android 90+
-- Samsung Internet 14+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-### **Required Features**
-- JavaScript enabled
-- Camera access (for QR scanning)
-- Geolocation API (optional, for user location)
+## 📝 License
 
-## Deployment 🌐
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### **Static Hosting Options:**
+## 🐛 Troubleshooting
 
-1. **GitHub Pages**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git branch -M main
-   git remote add origin https://github.com/yourusername/ble-tracker.git
-   git push -u origin main
-   # Enable GitHub Pages in repo settings
-   ```
+### Backend won't start
+- Check that `.env` file exists in `backend/` directory
+- Verify all required environment variables are set
+- Ensure Python dependencies are installed: `pip install -r backend/requirements.txt`
 
-2. **Netlify**
-   - Drag and drop the `bleTags` folder
-   - Or connect to GitHub repo
+### OAuth errors
+- Verify credentials in `.env` are correct
+- Check that `OAUTH_USERNAME` and `OAUTH_PASSWORD` variables are properly named (not `USERNAME` or `PASSWORD`)
+- Ensure token endpoint is accessible
 
-3. **Vercel**
-   ```bash
-   npm i -g vercel
-   vercel
-   ```
+### Mobile access issues
+- Verify backend is listening on `0.0.0.0` not `127.0.0.1`
+- Check firewall allows port 5000
+- Use IP address instead of localhost on mobile
 
-4. **AWS S3 + CloudFront**
-
-5. **Azure Static Web Apps**
-
-## Security Considerations 🔒
-
-1. **HTTPS Required** - Camera access requires HTTPS (except localhost)
-2. **CORS** - Ensure your backend allows requests from your frontend domain
-3. **API Authentication** - Add API keys/tokens if needed (not implemented by default)
-4. **Input Validation** - IMEI validation is basic, enhance if needed
-
-## Troubleshooting 🔧
-
-### **Camera not working?**
-- Ensure HTTPS is enabled (or use localhost)
-- Check browser permissions
-- Try a different browser
-
-### **Map not loading?**
-- Check internet connection
-- Open browser console (F12) for errors
-- Ensure Leaflet JS/CSS CDN is accessible
-
-### **API errors?**
-- Check `CONFIG.API_BASE_URL` is correct
-- Verify backend is running
-- Check CORS settings on backend
-- Open Network tab in browser DevTools
-
-### **Markers not appearing?**
-- Check API response format matches expected structure
-- Verify latitude/longitude values are valid
+### Map not loading
 - Check browser console for errors
+- Verify Google Maps API key (if using Google Maps)
+- Try switching to OpenStreetMap in settings
 
-## Customization 🎨
+## 📧 Support
 
-### **Change Map Style**
+For issues and questions:
+- Open an issue on GitHub
+- Check existing documentation in the repository
 
-Replace OpenStreetMap with other tile providers:
+## 🔗 Links
 
-```javascript
-// In map.js initMap() function
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    // ... options
-}).addTo(map);
-```
-
-**Alternatives:**
-- **CartoDB**: `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png`
-- **Stamen**: `https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.png`
-- **Google Maps**: Requires API key and additional library
-
-### **Change Marker Icon**
-
-Edit `addOrUpdateMarker()` in `js/map.js`:
-
-```javascript
-const markerIcon = L.divIcon({
-    className: 'custom-marker',
-    html: `<i data-lucide="your-icon-name"></i>`,
-    // ... other options
-});
-```
-
-See [Lucide Icons](https://lucide.dev/icons/) for available icons.
-
-## Performance Tips ⚡
-
-1. **Reduce Refresh Interval** for fewer API calls
-2. **Limit Tracked Tags** - Too many markers can slow down the map
-3. **Use Marker Clustering** - For 50+ tags, consider [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster)
-4. **Optimize Images** - If using custom marker images
-5. **Lazy Load** - Load tags on-demand instead of all at once
-
-## License 📄
-
-This project is provided as-is for educational and commercial use.
-
-## Support 💬
-
-For issues or questions:
-1. Check the browser console for errors
-2. Review this README
-3. Check Leaflet.js documentation: https://leafletjs.com/
-4. Check jsQR documentation: https://github.com/cozmo/jsQR
-
-## Credits 🙏
-
-- **Leaflet.js** - Interactive map library
-- **OpenStreetMap** - Map tiles
-- **jsQR** - QR code scanning
-- **Tailwind CSS** - Styling framework
-- **Lucide Icons** - Icon library
+- **Repository:** https://github.com/cmukoyi/ble-tag-tracker
+- **Linux Deployment Guide:** [LINUX_DEPLOY.md](LINUX_DEPLOY.md)
+- **Production Checklist:** [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md)
 
 ---
 
-**Created for tracking BLE tags with a simple, mobile-first interface.**
+**Built with ❤️ for real-time vehicle tracking**
