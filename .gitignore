@@ -3,6 +3,16 @@
 .env.local
 .env.*.local
 backend/.env
+*.env
+
+# Credential Files (SECURITY)
+get_token.py
+*_credentials.py
+*_secrets.py
+token.txt
+*.token
+credentials.json
+secrets.json
 
 # Python
 __pycache__/
@@ -50,7 +60,6 @@ logs/
 *.tmp
 *.temp
 *.cache
-token.txt
 
 # OS Files
 Thumbs.db
@@ -65,6 +74,9 @@ build/
 # Docker volumes
 docker-volumes/
 
-# Test files (optional - uncomment if you don't want to track)
-# test_*.html
-# test_*.py
+# Test files (optional)
+test_*.html
+test_*.py
+
+# Build scripts with embedded credentials
+build_production.py
