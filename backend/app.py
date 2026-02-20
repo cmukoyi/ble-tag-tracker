@@ -152,6 +152,66 @@ def get_token():
         }), 500
 
 
+@app.route('/api/vehicles', methods=['GET'])
+def get_vehicles():
+    """
+    Fetch all vehicles from mzone API
+    Returns vehicle list with last known positions
+    """
+    try:
+        # Get valid token
+        token_response = get_token()
+        if isinstance(token_response, tuple):
+            # Error response
+            return token_response
+        
+        token_data = token_response.get_json()
+        if not token_data.get('success'):
+            return jsonify({
+                'success': False,
+                'error': 'Failed to obtain access token'
+            }), 401
+        
+        access_token = token_data['access_token']
+        
+        # Fetch vehicles with embedded positions from mzone API (using $expand)
+        api_url = 'https://live.mzoneweb.net/mzone62.api/Vehicles?$format=json&$top=100&$expand=lastKnownPosition($select=longitude,latitude,eventType_Id,utcTimestamp,speed)'
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
+        
+        if DEBUG_MODE:
+            print(f"🚗 Fetching vehicles from mzone API...")
+        
+        response = requests.get(api_url, headers=headers, timeout=30)
+        
+        if response.status_code == 200:
+            vehicles_data = response.json()
+            
+            if DEBUG_MODE:
+                print(f"✅ Found {len(vehicles_data.get('value', []))} vehicles")
+            
+            return jsonify({
+                'success': True,
+                'vehicles': vehicles_data
+            })
+        else:
+            if DEBUG_MODE:
+                print(f"❌ Failed to fetch vehicles: {response.status_code}")
+            return jsonify({
+                'success': False,
+                'error': f'API request failed: {response.status_code}'
+            }), response.status_code
+            
+    except Exception as e:
+        if DEBUG_MODE:
+            print(f"❌ Exception fetching vehicles: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""

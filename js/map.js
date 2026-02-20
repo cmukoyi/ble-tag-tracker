@@ -1123,6 +1123,82 @@ function deleteSelectedVehicle() {
     }
 }
 
+// ===== AUTO-LOAD VEHICLES FROM BACKEND =====
+async function autoLoadVehicles() {
+    try {
+        debugLog('🚗 Auto-loading vehicles from backend...');
+        
+        const response = await fetch(`${CONFIG.BACKEND_URL}/api/vehicles`);
+        
+        if (!response.ok) {
+            debugError(`❌ Failed to fetch vehicles: ${response.status}`);
+            return;
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success || !data.vehicles || !data.vehicles.value) {
+            debugError('❌ Invalid vehicles response:', data);
+            return;
+        }
+        
+        const vehicles = data.vehicles.value;
+        debugLog(`✅ Received ${vehicles.length} vehicles from backend`);
+        
+        // Load saved tags to avoid duplicates
+        const savedTags = loadSavedTags();
+        let addedCount = 0;
+        let skippedCount = 0;
+        
+        // Add each vehicle to the map
+        for (const vehicle of vehicles) {
+            const imei = vehicle.unit_Description || vehicle.id;
+            const description = vehicle.description || 'Unknown Vehicle';
+            
+            // Skip if already saved
+            if (savedTags.some(t => t.imei === imei)) {
+                skippedCount++;
+                continue;
+            }
+            
+            // Check if vehicle has location
+            if (!vehicle.lastKnownPosition || 
+                !vehicle.lastKnownPosition.latitude || 
+                !vehicle.lastKnownPosition.longitude) {
+                debugLog(`⚠️ Skipping ${description} - no location data`);
+                skippedCount++;
+                continue;
+            }
+            
+            // Add vehicle
+            const tag = {
+                imei: imei,
+                description: description,
+                externalReference: vehicle.id || '',
+                lastKnownPosition: vehicle.lastKnownPosition
+            };
+            
+            savedTags.push(tag);
+            addMarker(tag);
+            addedCount++;
+            
+            debugLog(`✅ Added: ${description} (${imei})`);
+        }
+        
+        // Save updated tags
+        saveTags(savedTags);
+        
+        debugLog(`🎯 Auto-load complete: ${addedCount} added, ${skippedCount} skipped`);
+        
+        if (addedCount > 0) {
+            showSuccess(`Loaded ${addedCount} vehicle${addedCount !== 1 ? 's' : ''} automatically`);
+        }
+        
+    } catch (error) {
+        debugError('❌ Auto-load failed:', error);
+    }
+}
+
 // ===== EVENT LISTENERS =====
 document.addEventListener('DOMContentLoaded', async () => {
     showLoading(true);
@@ -1162,10 +1238,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     debugLog('🔐 Step 4: Authenticating with backend server (background)...');
     debugLog('⏱️  Token will auto-refresh every ~55 minutes');
     fetchAuthToken()
-        .then(() => {
+        .then(async () => {
             debugLog('✅ Authentication successful - API calls will now work');
             debugLog('🔄 Automatic token refresh scheduled');
-            debugLog('👉 Open the BLE panel or search to add vehicles');
+            
+            // Auto-load vehicles after successful authentication
+            await autoLoadVehicles();
         })
         .catch(error => {
             console.error('⚠️ Backend authentication failed:', error);
