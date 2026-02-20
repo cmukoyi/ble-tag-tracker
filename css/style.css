@@ -1,0 +1,388 @@
+/* Mobile-First Responsive Design for BLE Tag Tracker */
+
+/* Reset & Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+}
+
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Map Full Screen */
+#map {
+    position: fixed;
+    top: 60px; /* Below navbar */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+}
+
+/* Ensure map tiles load properly */
+.leaflet-container {
+    font-family: inherit;
+}
+
+/* Custom Marker Styles */
+.custom-marker {
+    background-color: #2563eb;
+    border: 3px solid white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.5);
+    transition: transform 0.2s ease;
+}
+
+.custom-marker:hover {
+    transform: scale(1.15);
+}
+
+.custom-marker-pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(37, 99, 235, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+    }
+}
+
+/* Bottom Sheet Animations */
+.bottom-sheet-visible {
+    transform: translateY(0) !important;
+}
+
+/* QR Scanner Optimizations */
+#qrVideo {
+    max-height: 400px;
+    object-fit: cover;
+}
+
+/* Touch Targets (Apple HIG minimum 44px) */
+button, 
+input[type="button"],
+.touch-target {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* Loading States */
+.loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* Smooth Scrolling */
+.overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+/* Responsive Text */
+@media (max-width: 640px) {
+    .text-xs {
+        font-size: 0.8125rem; /* 13px minimum for mobile readability */
+    }
+}
+
+/* Tablet & Desktop Adjustments */
+@media (min-width: 768px) {
+    #map {
+        top: 64px; /* Larger navbar on desktop */
+    }
+    
+    #bottomSheet,
+    #tagInfoPanel,
+    #savedTagsPanel {
+        max-width: 500px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100%);
+    }
+    
+    .bottom-sheet-visible {
+        transform: translateX(-50%) translateY(0) !important;
+    }
+}
+
+/* Safe Area Insets for iOS Notch */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+    
+    nav {
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+    }
+}
+
+/* Dark Mode Support (Optional) */
+@media (prefers-color-scheme: dark) {
+    /* Uncomment to enable dark mode */
+    /*
+    body {
+        background-color: #1f2937;
+        color: #f9fafb;
+    }
+    
+    #bottomSheet,
+    #tagInfoPanel {
+        background-color: #374151;
+    }
+    */
+}
+
+/* Accessibility - Focus Visible */
+*:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+    nav,
+    #addTagBtn,
+    #bottomSheet,
+    #qrModal,
+    #tagInfoPanel,
+    #loadingSpinner {
+        display: none !important;
+    }
+    
+    #map {
+        position: relative;
+        top: 0;
+        height: 100vh;
+    }
+}
+
+/* Bottom Navigation Bar Styles */
+.nav-item {
+    color: #6b7280;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.nav-item:active {
+    background-color: #f3f4f6;
+}
+
+.nav-item.active {
+    color: #2563eb;
+}
+
+.nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 3px;
+    background-color: #2563eb;
+    border-radius: 0 0 3px 3px;
+}
+
+/* Safe area for devices with notches */
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Adjust map to account for bottom nav */
+#map {
+    bottom: 64px; /* Height of bottom nav */
+}
+
+/* Adjust FAB position for bottom nav */
+#addTagBtn {
+    bottom: 80px; /* Above bottom nav */
+}
+
+/* BLE Tags Panel Styles */
+.vehicle-item {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.vehicle-item:active {
+    background-color: #eff6ff;
+}
+
+.vehicle-item:last-child {
+    border-bottom: none;
+}
+
+#bleTagsList::-webkit-scrollbar {
+    width: 4px;
+}
+
+#bleTagsList::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 4px;
+}
+
+#bleTagsList::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+/* Panel shadow */
+#bleTagsPanel {
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom Leaflet Controls */
+.leaflet-control-custom {
+    transition: all 0.2s ease;
+}
+
+.leaflet-control-custom:hover {
+    background-color: #f3f4f6 !important;
+    transform: scale(1.05);
+}
+
+.leaflet-control-custom:active {
+    transform: scale(0.95);
+}
+
+/* Leaflet controls positioning on right */
+.leaflet-top.leaflet-right {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    right: 10px !important;
+    top: 10px !important;
+}
+
+.leaflet-right .leaflet-control {
+    margin-right: 0 !important;
+}
+
+/* Layer control styling */
+.leaflet-control-layers {
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+}
+
+.leaflet-control-layers-expanded {
+    padding: 8px 10px 8px 10px !important;
+}
+
+/* Zoom control styling */
+.leaflet-control-zoom {
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+    border: none !important;
+}
+
+.leaflet-control-zoom a {
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 30px !important;
+    font-size: 18px !important;
+}
+
+.leaflet-control-zoom a:first-child {
+    border-top-left-radius: 8px !important;
+    border-top-right-radius: 8px !important;
+}
+
+.leaflet-control-zoom a:last-child {
+    border-bottom-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+}
+
+/* Scale control styling */
+.leaflet-control-scale {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-radius: 3px !important;
+    padding: 2px 4px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15) !important;
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 1000 !important;
+}
+
+/* Position scale control above bottom nav */
+.leaflet-bottom.leaflet-left {
+    bottom: 15px !important;  /* Map already has bottom: 64px, so this adds to it */
+    left: 10px !important;
+    z-index: 1000 !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+.leaflet-control-scale-line {
+    border: 1.5px solid #555 !important;
+    border-top: none !important;
+    background: white !important;
+    color: #000 !important;
+    font-weight: 600 !important;
+    padding: 1px 4px !important;
+    text-align: center !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* Search Results Dropdown */
+#searchResults {
+    border: 1px solid #e5e7eb;
+}
+
+.search-result-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.15s;
+}
+
+.search-result-item:hover {
+    background-color: #f3f4f6;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-name {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 14px;
+}
+
+.search-result-registration {
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.search-no-results {
+    padding: 20px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 14px;
+}

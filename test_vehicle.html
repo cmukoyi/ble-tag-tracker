@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Tracker Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #eff6ff;
+            padding: 15px;
+            border-left: 4px solid #2563eb;
+            margin: 20px 0;
+        }
+        .button {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .button:hover {
+            background: #1d4ed8;
+        }
+        code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        pre {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🚗 Vehicle Tracker - mzone API Integration</h1>
+        
+        <div class="info">
+            <strong>✅ Configuration Complete!</strong><br>
+            The Vehicle Tracker is now configured to use the mzone API endpoint.
+        </div>
+        
+        <h2>Quick Test Instructions:</h2>
+        <ol>
+            <li>Open <code>index.html</code> in your browser</li>
+            <li>Click the <strong>+ button</strong> in the bottom-right corner</li>
+            <li>Paste the Vehicle ID: <code>72753c0d-4202-4836-bf9a-aaa30fedefc4</code></li>
+            <li>Click <strong>Add</strong></li>
+        </ol>
+        
+        <h3>Expected Result:</h3>
+        <ul>
+            <li>📍 Vehicle location plotted at: <strong>53.40807, -2.34979</strong> (Manchester, UK)</li>
+            <li>🏷️ Vehicle name displayed: <strong>"Chris Credit Card"</strong></li>
+            <li>📌 Address shown: <strong>"Clough Avenue, Trafford, M33 4HU"</strong></li>
+            <li>⏸️ Status: <strong>Ignition OFF</strong></li>
+            <li>📡 Event Type: <strong>Heartbeat</strong></li>
+        </ul>
+        
+        <h3>API Configuration:</h3>
+        <pre>API_BASE_URL: https://live.mzoneweb.net/mzone62.api
+Endpoint: /LastKnownPositions?$format=json&$filter=vehicle_Id eq [VEHICLE_ID]</pre>
+        
+        <h3>Sample API Response Format:</h3>
+        <pre>{
+  "@odata.context": "https://live.mzoneweb.net/mzone62.api/$metadata#LastKnownPositions",
+  "value": [{
+    "vehicle_Id": "72753c0d-4202-4836-bf9a-aaa30fedefc4",
+    "vehicle_Description": "Chris Credit Card",
+    "utcTimestamp": "2026-02-19T20:07:42Z",
+    "latitude": 53.40807,
+    "longitude": -2.34979,
+    "locationDescription": "Clough Avenue, Trafford, M33 4HU",
+    "eventType_Description": "Heartbeat",
+    "ignitionOn": false
+  }]
+}</pre>
+        
+        <h3>Features:</h3>
+        <ul>
+            <li>✅ Real-time vehicle location plotting on OpenStreetMap</li>
+            <li>✅ Vehicle description from API displayed on map markers</li>
+            <li>✅ Color-coded markers (Green = Ignition ON, Red = Ignition OFF)</li>
+            <li>✅ Detailed popup with address, status, and event type</li>
+            <li>✅ Auto-refresh every 30 seconds for tracked vehicles</li>
+            <li>✅ localStorage persistence - vehicles saved between sessions</li>
+            <li>✅ Editable custom names for each vehicle</li>
+            <li>✅ Mobile-optimized responsive design</li>
+        </ul>
+        
+        <a href="index.html" class="button">🚀 Launch Vehicle Tracker</a>
+    </div>
+    
+    <script>
+        console.log('Vehicle Tracker Test Page Loaded');
+        console.log('Test Vehicle ID: 72753c0d-4202-4836-bf9a-aaa30fedefc4');
+        console.log('Expected Location: 53.40807, -2.34979 (Manchester, UK)');
+        console.log('Expected Name: Chris Credit Card');
+    </script>
+</body>
+</html>
