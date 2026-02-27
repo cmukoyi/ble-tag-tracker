@@ -16,9 +16,8 @@ import subprocess
 DANGER_PATTERNS = [
     r'password\s*=\s*["\'][^"\']{6,}["\']',  # password="something"
     r'client_secret\s*=\s*["\'][^"\']{10,}["\']',  # client_secret="..."
-    r'ScopeUKAPI01',  # Specific password
-    r'g_SkQ\.B\.z3TeBU',  # Specific client secret
     r'oauth_password\s*=\s*["\'][^"\']+["\']',  # oauth_password="..."
+    r'[a-zA-Z0-9]{32,}',  # Long alphanumeric strings (potential tokens/keys)
 ]
 
 # Files to check (only staged files)

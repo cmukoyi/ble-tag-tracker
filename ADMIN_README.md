@@ -9,7 +9,7 @@ The admin portal provides billing management and user tracking capabilities for 
 
 **Credentials:**
 - Username: `admin`
-- Password: `admin123`
+- Password: `[Set in .env file]`
 
 ## Features
 
@@ -51,7 +51,7 @@ Generate comprehensive billing statements with:
 ### Accessing the Admin Portal
 1. Ensure the backend server is running: `python app.py`
 2. Navigate to `http://127.0.0.1:5000/admin`
-3. Login with credentials (admin/admin123)
+3. Login with configured credentials from .env
 
 ### Managing User IMEIs
 1. Click **"Manage IMEIs"** next to any user
@@ -107,7 +107,7 @@ Currently using in-memory storage:
 ## Security Considerations
 
 ### Current Implementation
-- Hardcoded admin credentials (admin/admin123)
+- Credentials from environment variables (.env file)
 - Basic Base64 authentication token
 - In-memory session storage
 

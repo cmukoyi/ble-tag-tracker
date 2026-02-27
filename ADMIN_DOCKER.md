@@ -17,7 +17,7 @@ Open your browser: **`http://localhost:5000/admin`**
 
 **Login Credentials:**
 - Username: `admin`
-- Password: `admin123`
+- Password: `[Set in .env file]`
 
 ## 📊 What's Included in Docker
 
@@ -131,7 +131,7 @@ All admin features work in Docker:
 ### Quick Test Steps:
 1. Start container: `docker-compose up`
 2. Go to: `http://localhost:5000/admin`
-3. Login with admin/admin123
+3. Login with configured credentials from .env file
 4. You should see the dashboard with stats
 
 ### Test User Registration:
@@ -169,7 +169,7 @@ docker-compose up --build
 ```
 
 ### Can't login to admin portal
-- Verify credentials: admin/admin123
+- Verify credentials: admin / [your-password-from-.env]
 - Check browser console for errors
 - Check container logs: `docker logs ble-tag-tracker`
 
@@ -227,7 +227,7 @@ API Routes Included:
 
 ## 🔒 Security Note
 
-The current setup uses hardcoded credentials (admin/admin123) for development.
+The current setup uses credentials from .env file for security.
 
 **For production:**
 1. Move credentials to environment variables
@@ -267,7 +267,7 @@ docker logs ble-tag-tracker -f --tail=100
 
 - [ ] Container builds successfully
 - [ ] Admin portal accessible at http://localhost:5000/admin
-- [ ] Login with admin/admin123 works
+- [ ] Login with configured credentials works
 - [ ] Dashboard shows statistics
 - [ ] Can add/remove IMEIs for users
 - [ ] Billing settings can be changed

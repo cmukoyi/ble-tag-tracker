@@ -15,7 +15,7 @@ docker-compose up --build
 
 | Feature | URL | Credentials |
 |---------|-----|-------------|
-| 🔐 **Admin Portal** | `http://localhost:5000/admin` | admin / admin123 |
+| 🔐 **Admin Portal** | `http://localhost:5000/admin` | [See .env file] |
 | 📱 User Login | `http://localhost:5000/login.html` | Email + PIN code |
 | 🏠 Main App | `http://localhost:5000/index.html` | After login |
 
@@ -62,7 +62,7 @@ When a user enters their email, you'll see:
 
 ### 2. Test Admin Portal:
 - Go to: `http://localhost:5000/admin`
-- Login: admin / admin123
+- Login: [Check your .env file for credentials]
 - See user in dashboard
 - Click "Manage IMEIs" → Add IMEI: `867747079036032`
 - Export to Excel to see report
@@ -118,4 +118,4 @@ docker-compose up --build
 
 **Everything is ready! The admin billing portal is fully integrated into Docker.** 🎉
 
-Access it at: **`http://localhost:5000/admin`** (admin/admin123)
+Access it at: **`http://localhost:5000/admin`** (credentials in .env file)

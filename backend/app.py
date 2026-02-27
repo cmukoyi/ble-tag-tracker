@@ -66,9 +66,9 @@ pin_storage = {}
 # User storage (in production, use a proper database)
 users_db = {}
 
-# Admin credentials (hardcoded for now)
-ADMIN_USERNAME = 'admin'
-ADMIN_PASSWORD = 'admin123'
+# Admin credentials (from environment variables)
+ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'changeme')
 
 # Billing configuration
 billing_config = {
@@ -527,17 +527,30 @@ def get_token():
         if DEBUG_MODE:
             print("🔐 Fetching new OAuth token...")
         
-        # Use EXACT payload from working Postman request
-        # This payload is pre-URL-encoded and known to work
-        payload = 'client_id=mz-scopeuk&client_secret=g_SkQ.B.z3TeBU%24g%23hVeP%23c2&username=ScopeUKAPI&password=ScopeUKAPI01!&scope=mz6-api.all%20mz_username&grant_type=password&response_type=code%20id%20token'
+        # Build OAuth payload from environment variables
+        # Using stored credentials for API access
+        from urllib.parse import quote
+        
+        payload = {
+            'client_id': CLIENT_ID,
+            'client_secret': CLIENT_SECRET,
+            'username': OAUTH_USERNAME,
+            'password': OAUTH_PASSWORD,
+            'scope': 'mz6-api.all mz_username',
+            'grant_type': GRANT_TYPE,
+            'response_type': 'code id token'
+        }
+        
+        # URL encode the payload
+        payload_str = '&'.join([f"{k}={quote(str(v))}" for k, v in payload.items()])
         
         if DEBUG_MODE:
             print(f"📤 Sending payload to: {TOKEN_URL}")
-            print(f"📋 Using hardcoded working payload from Postman")
+            print(f"📋 Using OAuth credentials from environment")
         
         response = requests.post(
             TOKEN_URL,
-            data=payload,
+            data=payload_str,
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             timeout=10
         )
