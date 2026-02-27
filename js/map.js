@@ -4,7 +4,7 @@
 // ===== CONFIGURATION =====
 const CONFIG = {
     // Production mode flag (set to false to enable debug logging)
-    PRODUCTION: true,
+    PRODUCTION: false,
     
     // Backend URL (auto-detects host for mobile access)
     BACKEND_URL: `${window.location.protocol}//${window.location.hostname}:5000`,
@@ -35,13 +35,13 @@ const CONFIG = {
 // Debug logging helper
 function debugLog(...args) {
     if (!CONFIG.PRODUCTION) {
-        debugLog(...args);
+        console.log(...args);
     }
 }
 
 function debugError(...args) {
     if (!CONFIG.PRODUCTION) {
-        debugError(...args);
+        console.error(...args);
     }
 }
 
@@ -171,22 +171,44 @@ function loadSavedTags() {
             const tags = JSON.parse(saved);
             debugLog(`📦 Loading ${tags.length} saved tags from localStorage`);
             
+            // Counter to track loaded markers
+            let loadedCount = 0;
+            const totalTags = tags.length;
+            
             tags.forEach(tag => {
                 const imei = tag.imei || tag;  // Support old format (plain string)
                 const description = tag.description || 'BLE Tag';
+                const vehicle_id = tag.vehicle_id || null;  // Get stored vehicle_id if available
                 
-                trackedTags.set(imei, { imei, description });
+                trackedTags.set(imei, { imei, description, vehicle_id });
                 
-                // Fetch and display each saved tag
-                fetchTagLocation(imei).then(tagData => {
+                // Fetch and display each saved tag (pass tag object with vehicle_id)
+                fetchTagLocation({ imei, vehicle_id }).then(tagData => {
+                    loadedCount++;
+                    
                     if (tagData) {
                         tagData.description = description;  // Add description to tag data
                         addOrUpdateMarker(tagData);
+                        
+                        // After all tags are loaded, auto-fit map bounds
+                        if (loadedCount === totalTags) {
+                            setTimeout(() => {
+                                autoFitMapToBounds();
+                            }, 500);
+                        }
                     } else {
                         debugError(`Failed to load saved tag ${imei}: API returned no data`);
                     }
                 }).catch(error => {
+                    loadedCount++;
                     debugError(`Failed to load saved tag ${imei}:`, error);
+                    
+                    // Still check if we should auto-fit after error
+                    if (loadedCount === totalTags) {
+                        setTimeout(() => {
+                            autoFitMapToBounds();
+                        }, 500);
+                    }
                 });
             });
             
@@ -196,6 +218,36 @@ function loadSavedTags() {
         }
     } catch (error) {
         debugError('Failed to load saved tags:', error);
+    }
+}
+
+/**
+ * Auto-fit map bounds to show all markers
+ */
+function autoFitMapToBounds() {
+    try {
+        const markerKeys = Object.keys(markers);
+        if (markerKeys.length === 0) {
+            console.log('📍 No markers to display on map');
+            return;
+        }
+        
+        if (markerKeys.length === 1) {
+            // If only one marker, center on it
+            const marker = markers[markerKeys[0]];
+            map.setView(marker.getLatLng(), 15);
+            console.log('📍 Centered map on single marker');
+        } else {
+            // Multiple markers - fit bounds to show all
+            const bounds = L.latLngBounds();
+            markerKeys.forEach(imei => {
+                bounds.extend(markers[imei].getLatLng());
+            });
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+            console.log(`📍 Map auto-fitted to ${markerKeys.length} markers`);
+        }
+    } catch (error) {
+        console.error('Error auto-fitting map bounds:', error);
     }
 }
 
@@ -247,7 +299,9 @@ function saveTags() {
  */
 function updateTagDescription(imei, description) {
     if (trackedTags.has(imei)) {
-        trackedTags.set(imei, { imei, description });
+        const tag = trackedTags.get(imei);
+        tag.description = description;
+        trackedTags.set(imei, tag);
         saveTags();
         
         // Update marker popup if exists
@@ -295,34 +349,49 @@ function clearAllTags() {
 // ===== API VEHICLE FUNCTIONS =====
 
 /**
- * Fetch all vehicles from API
+ * Fetch vehicles filtered by user's registered IMEIs
  */
 async function fetchVehicles() {
     try {
-        const token = await getValidToken();
-        if (!token) {
-            throw new Error('No authentication token available');
+        // Get saved IMEIs from localStorage
+        const savedTags = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY) || '[]');
+        const imeis = savedTags.map(tag => tag.imei || tag);
+        
+        if (imeis.length === 0) {
+            console.log('📦 No IMEIs registered yet');
+            return [];
         }
         
-        const apiUrl = 'https://live.mzoneweb.net/mzone62.api/Vehicles?$format=json&$count=true&$select=id%2Cdescription%2CvehicleIcon%2CvehicleIconColor%2ClastKnownEventUtcLastModified%2CdisablementFeatureAvailable%2CignitionOn%2Cregistration%2ClastKnownEventUtcTimestamp%2ClastKnownGpsEventUtcTimestamp%2CdecimalOdometer%2CengineSeconds%2Cvin%2Cunit_Description%2CvehicleDisabled&$orderby=description&$skip=0&$top=1000&vehicleGroup_Id=8e4fe3a7-4d46-474d-bf57-993828f70968&$expand=lastKnownPosition(%24select%3Dlongitude%2Clatitude%2CeventType_Id%2CutcTimestamp%2Cspeed)%2ClastKnownTemperature(%24select%3DutcTimestamp)%2CvehicleType(%24select%3DvehicleNotReportedThreshold)%2Cmake(%24select%3Ddescription)%2Cmodel(%24select%3Ddescription)%2ClastKnownFuelConsumption(%24select%3DaverageConsumption%2CaverageConsumptionUtcTimestamp%2CinstantaneousConsumption%2CinstantaneousConsumptionUtcTimestamp)%2ClastKnownFuelLevel(%24select%3Dlevel%2Cpercentage%2CutcTimestamp)';
+        console.log(`🚗 Fetching vehicles for ${imeis.length} registered IMEIs`);
         
-        const response = await fetch(apiUrl, {
-            method: 'GET',
+        // Get auth token from localStorage
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) {
+            console.error('❌ No auth token found');
+            return [];
+        }
+        
+        // Call backend API with IMEIs
+        const response = await fetch(`${CONFIG.BACKEND_URL}/api/vehicles`, {
+            method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${authToken}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ imeis: imeis })
         });
         
         if (!response.ok) {
-            throw new Error(`API Error: ${response.status} ${response.statusText}`);
+            const errorData = await response.json();
+            throw new Error(errorData.error || `API Error: ${response.status}`);
         }
         
         const data = await response.json();
-        debugLog(`✅ Fetched ${data.value?.length || 0} vehicles from API`);
-        return data.value || [];
+        console.log(`✅ Fetched ${data.found_vehicles || 0} vehicles (${data.requested_imeis} requested)`);
+        
+        return data.vehicles?.value || [];
     } catch (error) {
-        debugError('❌ Failed to fetch vehicles:', error);
+        console.error('❌ Failed to fetch vehicles:', error);
         return [];
     }
 }
@@ -504,13 +573,91 @@ function getUserLocation() {
 }
 
 // ===== API FUNCTIONS =====
-async function fetchTagLocation(vehicleId) {
+/**
+ * Fetch vehicle location by IMEI or vehicle_id
+ * @param {string|object} imeiOrTag - IMEI string or tag object with imei/vehicle_id
+ * @returns {object|null} - Location data or null if failed
+ */
+async function fetchTagLocation(imeiOrTag) {
     try {
-        // Ensure we have a valid token
-        const token = await getValidToken();
+        // Extract IMEI and vehicle_id
+        let imei, vehicleId;
         
-        // Build the API URL with the provided vehicle ID
-        const url = CONFIG.API_BASE_URL + CONFIG.API_ENDPOINTS.getLocation.replace(':imei', vehicleId);
+        if (typeof imeiOrTag === 'string') {
+            imei = imeiOrTag;
+            vehicleId = null;
+        } else {
+            imei = imeiOrTag.imei;
+            vehicleId = imeiOrTag.vehicle_id || null;
+        }
+        
+        // DEMO: Check if this is a demo tag and return hardcoded data
+        const savedTags = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY) || '[]');
+        const demoTag = savedTags.find(tag => tag.imei === imei && tag.lastKnownPosition);
+        
+        if (demoTag && demoTag.lastKnownPosition) {
+            debugLog(`🎭 DEMO: Returning hardcoded location for ${imei}`);
+            return {
+                imei: imei,
+                vehicle_id: demoTag.vehicle_id || 'DEMO',
+                latitude: demoTag.lastKnownPosition.latitude,
+                longitude: demoTag.lastKnownPosition.longitude,
+                timestamp: demoTag.lastKnownPosition.utcTimestamp,
+                address: `London, UK (Demo)`,
+                description: demoTag.description || 'BLE Tag',
+                eventType: 'Stationary',
+                ignitionOn: false,
+                direction: 0,
+            };
+        }
+        
+        // If no vehicle_id, fetch from Vehicles API using IMEI
+        if (!vehicleId) {
+            debugLog(`🔍 Fetching vehicle_id for IMEI: ${imei}`);
+            
+            const authToken = localStorage.getItem('authToken');
+            if (!authToken) {
+                throw new Error('No auth token found');
+            }
+            
+            // Call backend to get vehicle data (backend matches registration field)
+            const vehiclesResponse = await fetch(`${CONFIG.BACKEND_URL}/api/vehicles`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ imeis: [imei] })
+            });
+            
+            if (!vehiclesResponse.ok) {
+                throw new Error(`Failed to fetch vehicle data: ${vehiclesResponse.status}`);
+            }
+            
+            const vehiclesData = await vehiclesResponse.json();
+            const vehicles = vehiclesData.vehicles?.value || [];
+            
+            if (vehicles.length === 0) {
+                throw new Error(`No vehicle found with IMEI ${imei}`);
+            }
+            
+            vehicleId = vehicles[0].id;
+            debugLog(`✅ Found vehicle_id: ${vehicleId} for IMEI: ${imei}`);
+            
+            // Update trackedTags with vehicle_id
+            if (trackedTags.has(imei)) {
+                const tag = trackedTags.get(imei);
+                tag.vehicle_id = vehicleId;
+                trackedTags.set(imei, tag);
+                saveTags();
+            }
+        }
+        
+        // Now fetch LastKnownPosition using vehicle_id
+        const token = await getValidToken();
+        const url = `https://live.mzoneweb.net/mzone62.api/LastKnownPositions?$format=json&$filter=vehicle_Id eq ${vehicleId}`;
+        
+        debugLog(`🌐 Fetching position for vehicle_id: ${vehicleId}`);
         
         const response = await fetch(url, {
             method: 'GET',
@@ -527,14 +674,15 @@ async function fetchTagLocation(vehicleId) {
         const data = await response.json();
         
         if (!data.value || data.value.length === 0) {
-            throw new Error(`No location data found for vehicle ${vehicleId}`);
+            throw new Error(`No location data found for vehicle_id ${vehicleId}`);
         }
         
         const vehicle = data.value[0];
         
         // Transform to our expected format
         const transformedData = {
-            imei: vehicle.vehicle_Id,
+            imei: imei,  // Keep original IMEI
+            vehicle_id: vehicleId,  // Store vehicle_id for future use
             latitude: vehicle.latitude,
             longitude: vehicle.longitude,
             timestamp: vehicle.utcTimestamp,
@@ -547,13 +695,13 @@ async function fetchTagLocation(vehicleId) {
         
         return transformedData;
     } catch (error) {
-        debugError(`❌ Failed to fetch location for ${vehicleId}:`, error);
-        debugError('❌ API call failed. No mock data will be used.');
+        debugError(`❌ Failed to fetch location for ${typeof imeiOrTag === 'string' ? imeiOrTag : imeiOrTag.imei}:`, error);
         
         // Show user-friendly error
-        showError(`Failed to fetch location for vehicle ${vehicleId.substring(0, 8)}...\n${error.message}`);
+        const displayId = typeof imeiOrTag === 'string' ? imeiOrTag : imeiOrTag.imei;
+        showError(`Failed to fetch location for vehicle ${displayId.substring(0, 8)}...\n${error.message}`);
         
-        return null;  // Return null instead of mock data
+        return null;
     }
 }
 
@@ -710,6 +858,37 @@ function addOrUpdateMarker(tagData) {
     return marker;
 }
 
+/**
+ * Add marker from tag with vehicle data containing lastKnownPosition
+ * @param {Object} tag - Tag object with IMEI, description, and lastKnownPosition
+ */
+function addMarker(tag) {
+    if (!tag || !tag.lastKnownPosition) {
+        console.warn('⚠️ Cannot add marker: missing tag data or position');
+        return null;
+    }
+    
+    const { imei, description, lastKnownPosition } = tag;
+    const { latitude, longitude, utcTimestamp, speed } = lastKnownPosition;
+    
+    if (!latitude || !longitude) {
+        console.warn(`⚠️ Cannot add marker for ${description}: missing coordinates`);
+        return null;
+    }
+    
+    // Prepare tag data for addOrUpdateMarker
+    const tagData = {
+        imei: imei,
+        latitude: latitude,
+        longitude: longitude,
+        timestamp: utcTimestamp,
+        description: description,
+        ignitionOn: tag.ignitionOn || false
+    };
+    
+    return addOrUpdateMarker(tagData);
+}
+
 function removeMarker(imei) {
     if (markers[imei]) {
         map.removeLayer(markers[imei]);
@@ -752,8 +931,12 @@ async function addTag(vehicleId, description = 'Vehicle') {
         // Add marker to map
         const marker = addOrUpdateMarker(tagData);
         
-        // Add to tracked tags
-        trackedTags.set(vehicleId, { imei: vehicleId, description: finalDescription });
+        // Add to tracked tags (with vehicle_id if available)
+        trackedTags.set(vehicleId, { 
+            imei: vehicleId, 
+            description: finalDescription,
+            vehicle_id: tagData.vehicle_id || null
+        });
         
         // Save to localStorage
         saveTags();
@@ -778,7 +961,8 @@ function refreshAllTags() {
     
     trackedTags.forEach(async (tag, imei) => {
         try {
-            const tagData = await fetchTagLocation(imei);
+            // Pass tag object with vehicle_id for faster lookups
+            const tagData = await fetchTagLocation(tag);
             if (tagData) {
                 tagData.description = tag.description;
                 addOrUpdateMarker(tagData);
@@ -1234,28 +1418,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         showLoading(false);
     }
     
-    // Step 4: Try to authenticate in background (non-blocking)
-    debugLog('🔐 Step 4: Authenticating with backend server (background)...');
-    debugLog('⏱️  Token will auto-refresh every ~55 minutes');
-    fetchAuthToken()
-        .then(async () => {
-            debugLog('✅ Authentication successful - API calls will now work');
-            debugLog('🔄 Automatic token refresh scheduled');
-            
-            // Auto-load vehicles after successful authentication
-            await autoLoadVehicles();
-        })
-        .catch(error => {
-            console.error('⚠️ Backend authentication failed:', error);
-            debugError('╔════════════════════════════════════════════════════════╗');
-            console.error('║  🚨 BACKEND SERVER NOT RUNNING                         ║');
-            debugError('╠════════════════════════════════════════════════════════╣');
-            debugError('║  Start the backend server first:                       ║');
-            debugError('║  1. Open PowerShell                                    ║');
-            debugError('║  2. Run: .\\START_SERVER.ps1                            ║');
-            debugError(`║  3. Backend URL: ${CONFIG.BACKEND_URL}                 ║`);
-            debugError('╚════════════════════════════════════════════════════════╝');
-        });
+    // Note: OAuth authentication is handled by the backend server
+    // Frontend uses JWT tokens from user login (stored in localStorage)
+    debugLog('✅ Vehicle Tracker ready - User authentication via login page');
     
     // Add tag button (FAB)
     const addTagBtn = document.getElementById('addTagBtn');
@@ -1297,33 +1462,45 @@ document.addEventListener('DOMContentLoaded', async () => {
     const searchResults = document.getElementById('searchResults');
     const searchResultsList = document.getElementById('searchResultsList');
     
-    // Fetch all vehicles from API
+    // Fetch all vehicles from API (filtered by user's registered IMEIs)
     async function fetchAllVehicles() {
         try {
-            debugLog('🔍 Fetching all vehicles from API...');
-            const token = await getValidToken();
-            if (!token) {
-                debugError('❌ No valid token available for search');
+            debugLog('🔍 Fetching registered vehicles for search...');
+            
+            // Get saved IMEIs from localStorage
+            const savedTags = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY) || '[]');
+            const imeis = savedTags.map(tag => tag.imei || tag);
+            
+            if (imeis.length === 0) {
+                console.log('📦 No IMEIs registered yet for search');
                 return [];
             }
             
-            const apiUrl = 'https://live.mzoneweb.net/mzone62.api/Vehicles?$format=json&$count=true&$select=id%2Cdescription%2CvehicleIcon%2CvehicleIconColor%2ClastKnownEventUtcLastModified%2CdisablementFeatureAvailable%2CignitionOn%2Cregistration%2ClastKnownEventUtcTimestamp%2ClastKnownGpsEventUtcTimestamp%2CdecimalOdometer%2CengineSeconds%2Cvin%2Cunit_Description%2CvehicleDisabled&$orderby=description&$skip=0&$top=25&vehicleGroup_Id=8e4fe3a7-4d46-474d-bf57-993828f70968&$expand=lastKnownPosition(%24select%3Dlongitude%2Clatitude%2CeventType_Id%2CutcTimestamp%2Cspeed)%2ClastKnownTemperature(%24select%3DutcTimestamp)%2CvehicleType(%24select%3DvehicleNotReportedThreshold)%2Cmake(%24select%3Ddescription)%2Cmodel(%24select%3Ddescription)%2ClastKnownFuelConsumption(%24select%3DaverageConsumption%2CaverageConsumptionUtcTimestamp%2CinstantaneousConsumption%2CinstantaneousConsumptionUtcTimestamp)%2ClastKnownFuelLevel(%24select%3Dlevel%2Cpercentage%2CutcTimestamp)';
+            // Get auth token from localStorage
+            const authToken = localStorage.getItem('authToken');
+            if (!authToken) {
+                console.error('❌ No auth token found');
+                return [];
+            }
             
-            const response = await fetch(apiUrl, {
+            // Call backend API with IMEIs
+            const response = await fetch(`${CONFIG.BACKEND_URL}/api/vehicles`, {
+                method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                }
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ imeis: imeis })
             });
             
             if (!response.ok) {
-                debugError(`❌ API returned ${response.status}: ${response.statusText}`);
-                throw new Error(`API returned ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || `API Error: ${response.status}`);
             }
             
             const data = await response.json();
-            allVehicles = data.value || [];
-            debugLog(`✅ Fetched ${allVehicles.length} vehicles for search:`, allVehicles);
+            allVehicles = data.vehicles?.value || [];
+            debugLog(`✅ Fetched ${allVehicles.length} vehicles for search`);
             return allVehicles;
         } catch (error) {
             debugError('❌ Failed to fetch vehicles for search:', error);
@@ -1333,6 +1510,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Filter and display search results
     function displaySearchResults(query = '') {
+        if (!searchResultsList || !searchResults) {
+            console.warn('⚠️ Search UI elements not found');
+            return;
+        }
+        
         debugLog(`🔍 Filtering ${allVehicles.length} vehicles with query: "${query}"`);
         
         const filtered = query.trim() === '' 
@@ -1360,7 +1542,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const vehicleId = item.getAttribute('data-vehicle-id');
                     await plotVehicleFromSearch(vehicleId);
                     // Clear and hide search
-                    searchInput.value = '';
+                    if (searchInput) searchInput.value = '';
                     searchResults.classList.add('hidden');
                 });
             });
@@ -1440,27 +1622,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Search input focus - fetch and show all vehicles
-    searchInput.addEventListener('focus', async () => {
-        if (allVehicles.length === 0) {
-            showLoading(true);
-            await fetchAllVehicles();
-            showLoading(false);
-        }
-        displaySearchResults(searchInput.value);
-    });
+    if (searchInput) {
+        searchInput.addEventListener('focus', async () => {
+            if (allVehicles.length === 0) {
+                showLoading(true);
+                await fetchAllVehicles();
+                showLoading(false);
+            }
+            displaySearchResults(searchInput.value);
+        });
+    }
     
     // Search input typing - filter results
-    searchInput.addEventListener('input', (e) => {
-        if (allVehicles.length === 0) return;
-        displaySearchResults(e.target.value);
-    });
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            if (allVehicles.length === 0) return;
+            displaySearchResults(e.target.value);
+        });
+    }
     
     // Click outside to close search results
-    document.addEventListener('click', (e) => {
-        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-            searchResults.classList.add('hidden');
-        }
-    });
+    if (searchInput && searchResults) {
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.classList.add('hidden');
+            }
+        });
+    }
     // ========== END SEARCH FUNCTIONALITY ==========
     
     // Remove tag button in tag info panel
@@ -1685,58 +1873,62 @@ document.addEventListener('DOMContentLoaded', async () => {
         vehiclesLoading.classList.remove('hidden');
         bleTagsList.innerHTML = '';
         
-        const vehicles = await fetchVehicles();
+        // Get saved tags from localStorage
+        const savedTags = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY) || '[]');
         
         // Hide loading
         vehiclesLoading.classList.add('hidden');
         
-        if (vehicles.length === 0) {
+        if (savedTags.length === 0) {
             bleTagsList.innerHTML = `
                 <div class="text-center text-gray-500 py-8 px-4">
                     <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 text-gray-400"></i>
-                    <p>No vehicles found</p>
-                    <p class="text-sm mt-1">Check your API connection</p>
+                    <p class="font-medium">No tags yet</p>
+                    <p class="text-sm mt-1">Add your first IMEI to get started</p>
                 </div>
             `;
             lucide.createIcons();
             return;
         }
         
-        bleTagsList.innerHTML = vehicles.map(vehicle => {
-            const description = vehicle.description || 'Unnamed Vehicle';
-            const timestamp = vehicle.lastKnownPosition?.utcTimestamp || vehicle.lastKnownEventUtcTimestamp;
+        bleTagsList.innerHTML = savedTags.map(tag => {
+            const imei = tag.imei || tag;
+            const description = tag.description || 'BLE Tag';
+            const hasLocation = tag.lastKnownPosition && tag.lastKnownPosition.latitude && tag.lastKnownPosition.longitude;
+            const timestamp = tag.lastKnownPosition?.utcTimestamp;
             const timeAgo = formatTimestamp(timestamp);
-            const hasLocation = vehicle.lastKnownPosition && vehicle.lastKnownPosition.latitude && vehicle.lastKnownPosition.longitude;
-            const ignitionOn = vehicle.ignitionOn;
             
             // Check if timestamp is older than 24 hours
-            const isOld = timestamp ? (new Date() - new Date(timestamp)) > 86400000 : false; // 86400000ms = 24 hours
+            const isOld = timestamp ? (new Date() - new Date(timestamp)) > 86400000 : false;
             const timestampClass = isOld ? 'text-red-600' : 'text-gray-500';
+            
+            // Check if marker exists and get real-time data
+            const marker = markers[imei];
+            const markerData = marker ? marker.getPopup() : null;
             
             return `
                 <div class="vehicle-item p-3 border-b border-gray-200 hover:bg-blue-50 cursor-pointer transition" 
-                     data-vehicle-id="${vehicle.id}"
-                     data-lat="${vehicle.lastKnownPosition?.latitude || ''}"
-                     data-lng="${vehicle.lastKnownPosition?.longitude || ''}"
+                     data-imei="${imei}"
+                     data-vehicle-id="${tag.vehicle_id || ''}"
                      data-description="${description}">
                     <div class="flex items-start gap-2">
                         <div class="flex-shrink-0 mt-1">
-                            <div class="w-10 h-10 rounded-full ${ignitionOn ? 'bg-green-100' : 'bg-gray-100'} flex items-center justify-center">
-                                <i data-lucide="${ignitionOn ? 'zap' : 'power'}" class="w-5 h-5 ${ignitionOn ? 'text-green-600' : 'text-gray-400'}"></i>
+                            <div class="w-10 h-10 rounded-full ${hasLocation ? 'bg-green-100' : 'bg-gray-100'} flex items-center justify-center">
+                                <i data-lucide="${hasLocation ? 'radio' : 'radio-tower'}" class="w-5 h-5 ${hasLocation ? 'text-green-600' : 'text-gray-400'}"></i>
                             </div>
                         </div>
                         <div class="flex-1 min-w-0">
                             <h3 class="font-semibold text-gray-800 truncate">${description}</h3>
-                            <p class="text-xs ${timestampClass} mt-1">
-                                <i data-lucide="clock" class="w-3 h-3 inline"></i> ${timeAgo}
+                            <p class="text-xs text-gray-500 mt-1">
+                                <i data-lucide="fingerprint" class="w-3 h-3 inline"></i> IMEI: ${imei}
                             </p>
                             ${hasLocation ? `
-                                <p class="text-xs text-green-600 mt-1">
-                                    <i data-lucide="map-pin" class="w-3 h-3 inline"></i> Location available
+                                <p class="text-xs ${timestampClass} mt-1">
+                                    <i data-lucide="clock" class="w-3 h-3 inline"></i> ${timeAgo}
                                 </p>
                             ` : `
                                 <p class="text-xs text-gray-400 mt-1">
-                                    <i data-lucide="map-pin-off" class="w-3 h-3 inline"></i> No location
+                                    <i data-lucide="map-pin-off" class="w-3 h-3 inline"></i> No location data yet
                                 </p>
                             `}
                         </div>
@@ -1752,53 +1944,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Add click handlers to each vehicle item
         document.querySelectorAll('.vehicle-item').forEach(item => {
             item.addEventListener('click', async function() {
-                const vehicleId = this.getAttribute('data-vehicle-id');
+                const imei = this.getAttribute('data-imei');
+                const vehicleId = this.getAttribute('data-vehicle-id') || null;
                 const description = this.getAttribute('data-description');
                 
                 // Close the panel
                 bleTagsPanel.classList.add('-translate-x-full');
                 
-                // Show loading indicator
+                // If marker already exists, just center on it
+                if (markers[imei]) {
+                    const marker = markers[imei];
+                    const latLng = marker.getLatLng();
+                    map.setView(latLng, 15);
+                    marker.openPopup();
+                    return;
+                }
+                
+                // Otherwise fetch fresh location
                 showLoading(true);
                 
-                // Fetch fresh position data using LastKnownPositions API
-                const positionData = await fetchVehiclePosition(vehicleId);
+                try {
+                    const tagData = await fetchTagLocation({ imei, vehicle_id: vehicleId });
+                    
+                    if (tagData) {
+                        tagData.description = description;
+                        addOrUpdateMarker(tagData);
+                        
+                        // Center map on the location
+                        map.setView([tagData.latitude, tagData.longitude], 15);
+                        
+                        // Open popup
+                        if (markers[imei]) {
+                            markers[imei].openPopup();
+                        }
+                    } else {
+                        showError('Unable to fetch location for this tag');
+                    }
+                } catch (error) {
+                    debugError('Error fetching tag location:', error);
+                    showError('Failed to load tag location');
+                }
                 
                 showLoading(false);
-                
-                if (positionData && positionData.latitude && positionData.longitude) {
-                    // Create marker data
-                    const tagData = {
-                        imei: vehicleId,
-                        latitude: positionData.latitude,
-                        longitude: positionData.longitude,
-                        description: positionData.vehicle_Description || description,
-                        timestamp: positionData.utcTimestamp,
-                        address: positionData.locationDescription || '',
-                        eventType: positionData.eventType_Description || '',
-                        ignitionOn: positionData.ignitionOn,
-                        utcLastModified: positionData.utcLastModified
-                    };
-                    
-                    // Add marker to map
-                    addOrUpdateMarker(tagData);
-                    
-                    // Center map on the location
-                    map.setView([positionData.latitude, positionData.longitude], 16, {
-                        animate: true,
-                        duration: 1
-                    });
-                    
-                    // Open popup after animation
-                    setTimeout(() => {
-                        const marker = markers[vehicleId];
-                        if (marker) {
-                            marker.openPopup();
-                        }
-                    }, 500);
-                } else {
-                    alert('Failed to fetch vehicle location. Please try again.');
-                }
             });
         });
     }
@@ -1855,58 +2042,93 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Bottom Navigation Handlers
     const navItems = document.querySelectorAll('.nav-item');
     
+    console.log(`🧭 Found ${navItems.length} navigation items`);
+    
     navItems.forEach(item => {
         item.addEventListener('click', function() {
-            // Remove active class from all items
-            navItems.forEach(nav => nav.classList.remove('active'));
+            console.log(`🧭 Navigation clicked: ${this.id}`);
             
-            // Add active class to clicked item
-            this.classList.add('active');
-            
-            // Handle navigation based on which item was clicked
-            const navId = this.id;
-            
-            switch(navId) {
-                case 'navMap':
-                    // Show map view (default view)
-                    debugLog('Showing MAP view');
-                    const mapDiv = document.getElementById('map');
-                    mapDiv.style.display = 'block';
-                    mapDiv.style.height = '100vh';
-                    document.getElementById('reportsPanel').classList.add('hidden');
-                    document.getElementById('addTagBtn').style.display = 'block';
-                    // Reset reports panel layout
-                    document.getElementById('reportsPanel').style.top = '0';
-                    document.getElementById('reportsPanel').style.height = '100%';
-                    // Invalidate map size
-                    setTimeout(() => map.invalidateSize(), 100);
-                    break;
-                    
-                case 'navReports':
-                    debugLog('Showing REPORTS view');
-                    document.getElementById('map').style.display = 'none';
-                    document.getElementById('reportsPanel').classList.remove('hidden');
-                    document.getElementById('addTagBtn').style.display = 'none';
-                    // Reset reports panel layout and hide clear route button
-                    document.getElementById('reportsPanel').style.top = '0';
-                    document.getElementById('reportsPanel').style.height = '100%';
-                    const clearRouteBtnNav = document.getElementById('clearRouteBtn');
-                    if (clearRouteBtnNav) {
-                        clearRouteBtnNav.classList.add('hidden');
-                    }
-                    populateVehicleSelector();
-                    lucide.createIcons();
-                    break;
-                    
-                case 'navSettings':
-                    debugLog('Showing SETTINGS view');
-                    openSettingsBlade();
-                    break;
-                    
-                case 'navAccount':
-                    debugLog('Showing ACCOUNT popup');
-                    toggleAccountPopup();
-                    break;
+            try {
+                // Remove active class from all items
+                navItems.forEach(nav => nav.classList.remove('active'));
+                
+                // Add active class to clicked item
+                this.classList.add('active');
+                
+                // Handle navigation based on which item was clicked
+                const navId = this.id;
+                
+                switch(navId) {
+                    case 'navMap':
+                        // Show location/map view (default view)
+                        console.log('🗺️ Showing LOCATION view');
+                        debugLog('Showing LOCATION view');
+                        const mapDiv = document.getElementById('map');
+                        const homeScreen = document.getElementById('homeScreen');
+                        if (homeScreen) homeScreen.classList.add('hidden');
+                        mapDiv.classList.remove('hidden');
+                        mapDiv.style.display = 'block';
+                        mapDiv.style.height = '100vh';
+                        document.getElementById('reportsPanel').classList.add('hidden');
+                        const addTagBtn = document.getElementById('addTagBtn');
+                        if (addTagBtn) addTagBtn.style.display = 'block';
+                        // Reset reports panel layout
+                        document.getElementById('reportsPanel').style.top = '0';
+                        document.getElementById('reportsPanel').style.height = '100%';
+                        
+                        // Initialize map if not already done
+                        if (!map) {
+                            console.log('🗺️ Initializing map...');
+                            initMap();
+                        }
+                        
+                        // Invalidate map size and load saved tags
+                        setTimeout(() => {
+                            if (map) {
+                                map.invalidateSize();
+                                
+                                // Load saved tags and display on map
+                                console.log('📍 Loading saved BLE tags on map...');
+                                loadSavedTags();
+                            }
+                        }, 100);
+                        break;
+                        
+                    case 'navReports':
+                        console.log('📊 Showing JOURNEYS view');
+                        debugLog('Showing JOURNEYS view');
+                        const homeScreen2 = document.getElementById('homeScreen');
+                        if (homeScreen2) homeScreen2.classList.add('hidden');
+                        document.getElementById('map').classList.add('hidden');
+                        document.getElementById('map').style.display = 'none';
+                        document.getElementById('reportsPanel').classList.remove('hidden');
+                        const addTagBtn2 = document.getElementById('addTagBtn');
+                        if (addTagBtn2) addTagBtn2.style.display = 'none';
+                        // Reset reports panel layout and hide clear route button
+                        document.getElementById('reportsPanel').style.top = '0';
+                        document.getElementById('reportsPanel').style.height = '100%';
+                        const clearRouteBtnNav = document.getElementById('clearRouteBtn');
+                        if (clearRouteBtnNav) {
+                            clearRouteBtnNav.classList.add('hidden');
+                        }
+                        populateVehicleSelector();
+                        lucide.createIcons();
+                        break;
+                        
+                    case 'navSettings':
+                        console.log('⚙️ Showing SETTINGS view');
+                        debugLog('Showing SETTINGS view');
+                        const homeScreen3 = document.getElementById('homeScreen');
+                        if (homeScreen3) homeScreen3.classList.add('hidden');
+                        openSettingsBlade();
+                        break;
+                        
+                    default:
+                        console.warn(`⚠️ Unknown navigation item: ${navId}`);
+                }
+            } catch (error) {
+                console.error('❌ Navigation error:', error);
+                alert(`Navigation error: ${error.message}`);
             }
         });
     });
@@ -2265,7 +2487,7 @@ function displayTrips(trips) {
     if (totalDistanceEl) totalDistanceEl.textContent = `${totalDistance.toFixed(2)} km`;
     if (summary) summary.classList.remove('hidden');
     
-    // Generate trip cards
+    // Generate trip cards (compact layout)
     tripsList.innerHTML = trips.map(trip => {
         const startTime = new Date(trip.startUtcTimestamp).toLocaleString();
         const endTime = new Date(trip.endUtcTimestamp).toLocaleString();
@@ -2273,80 +2495,69 @@ function displayTrips(trips) {
         const distance = trip.distance ? `${trip.distance.toFixed(2)} km` : 'N/A';
         
         return `
-            <div class="trip-card bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition cursor-pointer" data-trip-id="${trip.id}">
-                <!-- Header: Times, Distance, Duration -->
-                <div class="grid grid-cols-2 gap-4 mb-3 pb-3 border-b border-gray-200">
-                    <div>
-                        <div class="flex items-center text-xs text-gray-500 mb-1">
-                            <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
-                            Start Time
-                        </div>
+            <div class="trip-card bg-white rounded-lg shadow-sm p-3 hover:shadow-md transition cursor-pointer border border-gray-200" data-trip-id="${trip.id}">
+                <!-- Compact Header: Times in single row -->
+                <div class="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
+                    <div class="flex-1">
+                        <div class="text-xs text-gray-500">Start</div>
                         <div class="text-sm font-semibold text-gray-800">${new Date(trip.startUtcTimestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
-                        <div class="text-xs text-gray-500">${new Date(trip.startUtcTimestamp).toLocaleDateString()}</div>
                     </div>
-                    <div>
-                        <div class="flex items-center text-xs text-gray-500 mb-1">
-                            <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
-                            End Time
-                        </div>
+                    <div class="text-gray-400 px-2">→</div>
+                    <div class="flex-1 text-right">
+                        <div class="text-xs text-gray-500">End</div>
                         <div class="text-sm font-semibold text-gray-800">${new Date(trip.endUtcTimestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>
-                        <div class="text-xs text-gray-500">${new Date(trip.endUtcTimestamp).toLocaleDateString()}</div>
                     </div>
                 </div>
                 
-                <!-- Stats: Distance & Duration -->
-                <div class="grid grid-cols-2 gap-4 mb-3">
-                    <div class="bg-blue-50 rounded-lg p-3">
-                        <div class="flex items-center text-xs text-blue-600 mb-1">
+                <!-- Compact Stats: Distance & Duration inline -->
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="flex-1 bg-blue-50 rounded px-2 py-1.5 flex items-center justify-between">
+                        <div class="flex items-center text-xs text-blue-600">
                             <i data-lucide="map-pin" class="w-3 h-3 mr-1"></i>
                             Distance
                         </div>
-                        <div class="text-lg font-bold text-blue-700">${distance}</div>
+                        <div class="text-sm font-bold text-blue-700">${distance}</div>
                     </div>
-                    <div class="bg-green-50 rounded-lg p-3">
-                        <div class="flex items-center text-xs text-green-600 mb-1">
+                    <div class="flex-1 bg-green-50 rounded px-2 py-1.5 flex items-center justify-between">
+                        <div class="flex items-center text-xs text-green-600">
                             <i data-lucide="timer" class="w-3 h-3 mr-1"></i>
                             Duration
                         </div>
-                        <div class="text-lg font-bold text-green-700">${duration}</div>
+                        <div class="text-sm font-bold text-green-700">${duration}</div>
                     </div>
                 </div>
                 
-                <!-- Locations -->
-                <div class="space-y-2">
-                    <div class="flex items-start gap-2">
-                        <div class="mt-1 bg-green-100 rounded-full p-1">
-                            <i data-lucide="map-pin" class="w-4 h-4 text-green-600"></i>
+                <!-- Compact Locations -->
+                <div class="space-y-1.5 text-xs">
+                    <div class="flex items-start gap-1.5">
+                        <div class="mt-0.5 bg-green-100 rounded-full p-0.5">
+                            <i data-lucide="map-pin" class="w-3 h-3 text-green-600"></i>
                         </div>
-                        <div class="flex-1">
-                            <div class="text-xs text-gray-500 mb-1">Start Location</div>
-                            <div class="text-sm text-gray-700">${trip.startLocationDescription || 'Unknown location'}</div>
+                        <div class="flex-1 text-gray-700 truncate" title="${trip.startLocationDescription || 'Unknown location'}">
+                            ${trip.startLocationDescription || 'Unknown location'}
                         </div>
                     </div>
-                    <div class="flex items-start gap-2">
-                        <div class="mt-1 bg-red-100 rounded-full p-1">
-                            <i data-lucide="flag" class="w-4 h-4 text-red-600"></i>
+                    <div class="flex items-start gap-1.5">
+                        <div class="mt-0.5 bg-red-100 rounded-full p-0.5">
+                            <i data-lucide="flag" class="w-3 h-3 text-red-600"></i>
                         </div>
-                        <div class="flex-1">
-                            <div class="text-xs text-gray-500 mb-1">End Location</div>
-                            <div class="text-sm text-gray-700">${trip.endLocationDescription || 'Unknown location'}</div>
+                        <div class="flex-1 text-gray-700 truncate" title="${trip.endLocationDescription || 'Unknown location'}">
+                            ${trip.endLocationDescription || 'Unknown location'}
                         </div>
                     </div>
                 </div>
                 
                 ${trip.driver_Description ? `
-                    <div class="mt-3 pt-3 border-t border-gray-200">
-                        <div class="flex items-center text-xs text-gray-500">
-                            <i data-lucide="user" class="w-3 h-3 mr-1"></i>
-                            Driver: <span class="ml-1 font-semibold text-gray-700">${trip.driver_Description}</span>
-                        </div>
+                    <div class="mt-2 pt-2 border-t border-gray-100 flex items-center text-xs text-gray-600">
+                        <i data-lucide="user" class="w-3 h-3 mr-1"></i>
+                        ${trip.driver_Description}
                     </div>
                 ` : ''}
                 
-                <!-- Click to view route hint -->
-                <div class="mt-3 pt-3 border-t border-gray-200 flex items-center justify-center text-blue-600 text-sm">
-                    <i data-lucide="map" class="w-4 h-4 mr-2"></i>
-                    Click to view route on map
+                <!-- Compact click hint -->
+                <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-center text-blue-600 text-xs">
+                    <i data-lucide="map" class="w-3 h-3 mr-1"></i>
+                    View route
                 </div>
             </div>
         `;
@@ -2479,6 +2690,11 @@ function openSettingsBlade() {
     const blade = document.getElementById('settingsBlade');
     const panel = document.getElementById('settingsPanel');
     
+    if (!blade || !panel) {
+        console.error('⚠️ Settings blade elements not found');
+        return;
+    }
+    
     blade.classList.remove('hidden');
     
     // Trigger animation after a small delay for smooth transition
@@ -2487,7 +2703,9 @@ function openSettingsBlade() {
     }, 10);
     
     // Re-initialize Lucide icons
-    lucide.createIcons();
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+    }
 }
 
 /**
@@ -2505,8 +2723,15 @@ function closeSettingsBlade() {
     }, 300);
 }
 
-// Settings Blade Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
+// Settings Blade Event Listeners - with duplicate prevention
+let settingsListenersInitialized = false;
+
+function initializeSettingsListeners() {
+    if (settingsListenersInitialized) {
+        debugLog('⚠️ Settings listeners already initialized, skipping...');
+        return;
+    }
+    
     // Close button
     const closeBtn = document.getElementById('closeSettingsBtn');
     if (closeBtn) {
@@ -2626,12 +2851,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close popup when clicking outside
     document.addEventListener('click', (e) => {
         const popup = document.getElementById('accountPopup');
-        const accountNav = document.getElementById('navAccount');
         
-        if (popup && !popup.contains(e.target) && accountNav && !accountNav.contains(e.target)) {
+        if (popup && !popup.contains(e.target)) {
             closeAccountPopup();
         }
     });
+    
+    // Mark as initialized
+    settingsListenersInitialized = true;
+    debugLog('✅ Settings listeners initialized');
+}
+
+// Call initialization on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    initializeSettingsListeners();
 });
 
 // ===== ACCOUNT PANEL FUNCTIONS =====

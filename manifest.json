@@ -1,11 +1,11 @@
 {
-  "name": "Vehicle Tracker",
-  "short_name": "Tracker",
-  "description": "Real-time vehicle tracking and monitoring",
-  "start_url": "/",
+  "name": "BLE Tag Tracker",
+  "short_name": "BLE Tracker",
+  "description": "Track your BLE tags and assets with ease",
+  "start_url": "/login.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#173D64",
   "orientation": "portrait-primary",
   "icons": [
     {

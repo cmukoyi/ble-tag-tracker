@@ -8,6 +8,8 @@ services:
       - "5000:5000"
     env_file:
       - backend/.env
+    environment:
+      - DEBUG=True
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
@@ -18,3 +20,6 @@ services:
     volumes:
       # Optional: mount for logs
       - ./logs:/app/logs
+    # Ensure console output is visible
+    stdin_open: true
+    tty: true

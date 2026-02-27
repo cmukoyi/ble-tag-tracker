@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#173D64">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BLE Tracker">
+    <meta name="description" content="BLE Tag Tracker - Track your assets with ease">
+    <title>Login - BLE Tag Tracker</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192x192.png">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            background: #173D64;
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .btn-primary {
+            background: #173D64;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(23, 61, 100, 0.5);
+            background: #1f4f7e;
+        }
+        .btn-secondary {
+            border: 2px solid #173D64;
+            color: #173D64;
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background: #173D64;
+            color: white;
+            transform: translateY(-2px);
+        }
+        .accent-color {
+            color: #173D64;
+        }
+        .bg-accent {
+            background: #173D64;
+        }
+        .border-accent {
+            border-color: #173D64;
+        }
+        .focus-accent:focus {
+            border-color: #173D64;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center">
+    
+    <div class="w-full max-w-md px-4">
+        
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="glass rounded-3xl shadow-2xl p-8 text-center">
+            <!-- Logo -->
+            <div class="mb-8">
+                <img src="assets/logo.png" alt="BLE Tag Tracker" class="w-full h-auto object-contain">
+            </div>
+            
+            <!-- Title -->
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Asset Tracker</h1>
+            <p class="text-gray-600 mb-8">Track your assets with ease</p>
+            
+            <!-- Buttons -->
+            <div class="space-y-4">
+                <button onclick="showGetStarted()" class="w-full btn-primary text-white font-semibold py-4 px-6 rounded-xl shadow-lg">
+                    <span class="flex items-center justify-center gap-2">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        Get Started
+                    </span>
+                </button>
+                
+                <button onclick="showSignIn()" class="w-full btn-secondary font-semibold py-4 px-6 rounded-xl">
+                    <span class="flex items-center justify-center gap-2">
+                        <i data-lucide="log-in" class="w-5 h-5"></i>
+                        Sign In
+                    </span>
+                </button>
+            </div>
+            
+            <p class="text-xs text-gray-500 mt-8">Secure passwordless authentication</p>
+        </div>
+        
+        <!-- Get Started - Email Input -->
+        <div id="emailScreen" class="glass rounded-3xl shadow-2xl p-8 hidden">
+            <button onclick="showWelcome()" class="mb-6 text-gray-600 hover:text-gray-800 flex items-center gap-2">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                Back
+            </button>
+            
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4">
+                    <i data-lucide="mail" class="w-8 h-8 text-white"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Get Started</h2>
+                <p class="text-gray-600 text-sm">Enter your email to receive a verification code</p>
+            </div>
+            
+            <form onsubmit="sendPIN(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="emailInput"
+                        required
+                        placeholder="you@example.com"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition"
+                    >
+                </div>
+                
+                <button type="submit" class="w-full btn-primary text-white font-semibold py-4 px-6 rounded-xl shadow-lg">
+                    <span id="sendBtnText" class="flex items-center justify-center gap-2">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                        Send Verification Code
+                    </span>
+                    <span id="sendBtnLoading" class="hidden flex items-center justify-center gap-2">
+                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                        Sending...
+                    </span>
+                </button>
+            </form>
+            
+            <p class="text-center text-sm text-gray-500 mt-6">
+                Already have a code? <a href="#" onclick="showPinVerify(); return false;" class="accent-color font-semibold">Verify Now</a>
+            </p>
+        </div>
+        
+        <!-- PIN Verification -->
+        <div id="pinScreen" class="glass rounded-3xl shadow-2xl p-8 hidden">
+            <button onclick="showEmailScreen()" class="mb-6 text-gray-600 hover:text-gray-800 flex items-center gap-2">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                Back
+            </button>
+            
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4">
+                    <i data-lucide="shield-check" class="w-8 h-8 text-white"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Verify Code</h2>
+                <p class="text-gray-600 text-sm">Enter the 6-digit code sent to</p>
+                <p id="sentToEmail" class="accent-color font-semibold text-sm"></p>
+            </div>
+            
+            <form onsubmit="verifyPIN(event)" class="space-y-6">
+                <!-- PIN Input -->
+                <div class="flex justify-center gap-2">
+                    <input type="text" maxlength="1" class="pin-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition" pattern="[0-9]" required>
+                    <input type="text" maxlength="1" class="pin-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition" pattern="[0-9]" required>
+                    <input type="text" maxlength="1" class="pin-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition" pattern="[0-9]" required>
+                    <input type="text" maxlength="1" class="pin-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition" pattern="[0-9]" required>
+                    <input type="text" maxlength="1" class="pin-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition" pattern="[0-9]" required>
+                    <input type="text" maxlength="1" class="pin-input w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition" pattern="[0-9]" required>
+                </div>
+                
+                <button type="submit" class="w-full btn-primary text-white font-semibold py-4 px-6 rounded-xl shadow-lg">
+                    <span id="verifyBtnText" class="flex items-center justify-center gap-2">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        Verify & Continue
+                    </span>
+                    <span id="verifyBtnLoading" class="hidden flex items-center justify-center gap-2">
+                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                        Verifying...
+                    </span>
+                </button>
+            </form>
+            
+            <div class="text-center mt-6">
+                <p class="text-sm text-gray-500">Didn't receive the code?</p>
+                <button onclick="resendPIN()" class="accent-color font-semibold text-sm hover:underline mt-1">
+                    Resend Code
+                </button>
+            </div>
+        </div>
+        
+        <!-- Sign In Screen -->
+        <div id="signInScreen" class="glass rounded-3xl shadow-2xl p-8 hidden">
+            <button onclick="showWelcome()" class="mb-6 text-gray-600 hover:text-gray-800 flex items-center gap-2">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                Back
+            </button>
+            
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4">
+                    <i data-lucide="user" class="w-8 h-8 text-white"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome Back</h2>
+                <p class="text-gray-600 text-sm">Sign in to continue tracking</p>
+            </div>
+            
+            <form onsubmit="signIn(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="signInEmail"
+                        required
+                        placeholder="you@example.com"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition"
+                    >
+                </div>
+                
+                <button type="submit" class="w-full btn-primary text-white font-semibold py-4 px-6 rounded-xl shadow-lg">
+                    <span id="signInBtnText" class="flex items-center justify-center gap-2">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                        Send Login Code
+                    </span>
+                    <span id="signInBtnLoading" class="hidden flex items-center justify-center gap-2">
+                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                        Sending...
+                    </span>
+                </button>
+            </form>
+            
+            <p class="text-center text-sm text-gray-500 mt-6">
+                New user? <a href="#" onclick="showGetStarted(); return false;" class="accent-color font-semibold">Get Started</a>
+            </p>
+        </div>
+        
+        <!-- Name Collection Screen -->
+        <div id="nameScreen" class="glass rounded-3xl shadow-2xl p-8 hidden">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4">
+                    <i data-lucide="user-plus" class="w-8 h-8 text-white"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">What's your name?</h2>
+                <p class="text-gray-600 text-sm">Help us personalize your experience</p>
+            </div>
+            
+            <form onsubmit="submitName(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                    <input 
+                        type="text" 
+                        id="firstName"
+                        required
+                        placeholder="John"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition"
+                    >
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                    <input 
+                        type="text" 
+                        id="lastName"
+                        required
+                        placeholder="Doe"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition"
+                    >
+                </div>
+                
+                <button type="submit" class="w-full btn-primary text-white font-semibold py-4 px-6 rounded-xl shadow-lg">
+                    <span class="flex items-center justify-center gap-2">
+                        <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        Next
+                    </span>
+                </button>
+            </form>
+        </div>
+        
+        <!-- Password Creation Screen -->
+        <div id="passwordScreen" class="glass rounded-3xl shadow-2xl p-8 hidden">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4">
+                    <i data-lucide="lock" class="w-8 h-8 text-white"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Create your account password</h2>
+                <p class="text-gray-600 text-sm">Choose a strong password to secure your account</p>
+            </div>
+            
+            <form onsubmit="submitPassword(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="password"
+                            required
+                            minlength="8"
+                            placeholder="Enter password (min 8 characters)"
+                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition"
+                        >
+                        <button type="button" onclick="togglePassword('password', 'toggleIcon1')" class="absolute right-3 top-3.5 text-gray-500 hover:text-gray-700">
+                            <i id="toggleIcon1" data-lucide="eye" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="confirmPassword"
+                            required
+                            minlength="8"
+                            placeholder="Confirm your password"
+                            class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus-accent focus:outline-none transition"
+                        >
+                        <button type="button" onclick="togglePassword('confirmPassword', 'toggleIcon2')" class="absolute right-3 top-3.5 text-gray-500 hover:text-gray-700">
+                            <i id="toggleIcon2" data-lucide="eye" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="w-full btn-primary text-white font-semibold py-4 px-6 rounded-xl shadow-lg">
+                    <span class="flex items-center justify-center gap-2">
+                        <i data-lucide="check" class="w-5 h-5"></i>
+                        Next
+                    </span>
+                </button>
+            </form>
+        </div>
+        
+    </div>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed top-4 right-4 glass rounded-xl shadow-lg px-6 py-4 z-50 transition-all">
+        <div class="flex items-center gap-3">
+            <i data-lucide="info" class="w-5 h-5"></i>
+            <span id="toastMessage"></span>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // API Base URL - Change for production
+        const API_BASE = window.location.origin + '/api';
+        
+        // Store email temporarily
+        let currentEmail = '';
+        
+        // Screen Navigation
+        function showWelcome() {
+            hideAllScreens();
+            document.getElementById('welcomeScreen').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        
+        function showGetStarted() {
+            hideAllScreens();
+            document.getElementById('emailScreen').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        
+        function showSignIn() {
+            hideAllScreens();
+            document.getElementById('signInScreen').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        
+        function showEmailScreen() {
+            hideAllScreens();
+            document.getElementById('emailScreen').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        
+        function showPinVerify() {
+            hideAllScreens();
+            document.getElementById('pinScreen').classList.remove('hidden');
+            document.getElementById('sentToEmail').textContent = currentEmail;
+            lucide.createIcons();
+        }
+        
+        function showNameScreen() {
+            hideAllScreens();
+            document.getElementById('nameScreen').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        
+        function showPasswordScreen() {
+            console.log('showPasswordScreen function called');
+            hideAllScreens();
+            const passwordScreen = document.getElementById('passwordScreen');
+            console.log('passwordScreen element:', passwordScreen);
+            if (passwordScreen) {
+                passwordScreen.classList.remove('hidden');
+                console.log('Password screen should now be visible');
+            } else {
+                console.error('passwordScreen element not found!');
+            }
+            lucide.createIcons();
+        }
+        
+        function hideAllScreens() {
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            document.getElementById('emailScreen').classList.add('hidden');
+            document.getElementById('pinScreen').classList.add('hidden');
+            document.getElementById('signInScreen').classList.add('hidden');
+            document.getElementById('nameScreen').classList.add('hidden');
+            document.getElementById('passwordScreen').classList.add('hidden');
+        }
+        
+        // Toast Notification
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            toast.classList.remove('hidden');
+            
+            // Change color based on type
+            if (type === 'error') {
+                toast.classList.add('bg-red-100', 'text-red-800');
+            } else if (type === 'success') {
+                toast.classList.add('bg-green-100', 'text-green-800');
+            } else {
+                toast.classList.add('bg-blue-100', 'text-blue-800');
+            }
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('bg-red-100', 'text-red-800', 'bg-green-100', 'text-green-800', 'bg-blue-100', 'text-blue-800');
+            }, 4000);
+            
+            lucide.createIcons();
+        }
+        
+        // PIN Input Auto-focus
+        document.addEventListener('DOMContentLoaded', function() {
+            const pinInputs = document.querySelectorAll('.pin-input');
+            
+            pinInputs.forEach((input, index) => {
+                input.addEventListener('input', function(e) {
+                    if (this.value.length === 1 && index < pinInputs.length - 1) {
+                        pinInputs[index + 1].focus();
+                    }
+                });
+                
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && !this.value && index > 0) {
+                        pinInputs[index - 1].focus();
+                    }
+                });
+            });
+        });
+        
+        // Send PIN
+        async function sendPIN(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('emailInput').value;
+            currentEmail = email;
+            
+            // Show loading
+            document.getElementById('sendBtnText').classList.add('hidden');
+            document.getElementById('sendBtnLoading').classList.remove('hidden');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/send-pin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, isNewUser: true })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast('Verification code sent to ' + email, 'success');
+                    showPinVerify();
+                } else {
+                    showToast(data.error || 'Failed to send code', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Network error. Please try again.', 'error');
+            } finally {
+                // Hide loading
+                document.getElementById('sendBtnText').classList.remove('hidden');
+                document.getElementById('sendBtnLoading').classList.add('hidden');
+            }
+        }
+        
+        // Verify PIN
+        async function verifyPIN(event) {
+            event.preventDefault();
+            
+            const pinInputs = document.querySelectorAll('.pin-input');
+            const pin = Array.from(pinInputs).map(input => input.value).join('');
+            
+            if (pin.length !== 6) {
+                showToast('Please enter all 6 digits', 'error');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('verifyBtnText').classList.add('hidden');
+            document.getElementById('verifyBtnLoading').classList.remove('hidden');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/verify-pin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: currentEmail, pin })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Store token
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userEmail', currentEmail);
+                    
+                    showToast('Verification successful!', 'success');
+                    
+                    // Show name collection screen
+                    setTimeout(() => {
+                        showNameScreen();
+                    }, 500);
+                } else {
+                    showToast(data.error || 'Invalid verification code', 'error');
+                    
+                    // Clear PIN inputs
+                    pinInputs.forEach(input => input.value = '');
+                    pinInputs[0].focus();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Network error. Please try again.', 'error');
+            } finally {
+                // Hide loading
+                document.getElementById('verifyBtnText').classList.remove('hidden');
+                document.getElementById('verifyBtnLoading').classList.add('hidden');
+            }
+        }
+        
+        // Sign In
+        async function signIn(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('signInEmail').value;
+            currentEmail = email;
+            
+            // Show loading
+            document.getElementById('signInBtnText').classList.add('hidden');
+            document.getElementById('signInBtnLoading').classList.remove('hidden');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/send-pin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, isNewUser: false })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast('Login code sent to ' + email, 'success');
+                    showPinVerify();
+                } else {
+                    showToast(data.error || 'Failed to send code', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Network error. Please try again.', 'error');
+            } finally {
+                // Hide loading
+                document.getElementById('signInBtnText').classList.remove('hidden');
+                document.getElementById('signInBtnLoading').classList.add('hidden');
+            }
+        }
+        
+        // Submit Name
+        async function submitName(event) {
+            event.preventDefault();
+            
+            console.log('🔵 submitName called');
+            
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            
+            console.log('🔵 Name:', firstName, lastName);
+            
+            if (!firstName || !lastName) {
+                showToast('Please enter both first and last name', 'error');
+                return;
+            }
+            
+            // Store name temporarily
+            sessionStorage.setItem('tempFirstName', firstName);
+            sessionStorage.setItem('tempLastName', lastName);
+            console.log('🔵 Names saved to sessionStorage');
+            
+            // Show password screen immediately (no delay)
+            console.log('🔵 Calling showPasswordScreen NOW');
+            showPasswordScreen();
+            
+            showToast('Now create your password', 'success');
+        }
+        
+        // Toggle Password Visibility
+        function togglePassword(fieldId, iconId) {
+            const field = document.getElementById(fieldId);
+            const icon = document.getElementById(iconId);
+            
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                field.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+        
+        // Submit Password
+        async function submitPassword(event) {
+            event.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                showToast('Passwords do not match', 'error');
+                return;
+            }
+            
+            // Validate password strength
+            if (password.length < 8) {
+                showToast('Password must be at least 8 characters', 'error');
+                return;
+            }
+            
+            // Get stored data
+            const firstName = sessionStorage.getItem('tempFirstName');
+            const lastName = sessionStorage.getItem('tempLastName');
+            const token = localStorage.getItem('authToken');
+            
+            if (!token) {
+                showToast('Session expired. Please start over.', 'error');
+                setTimeout(() => showWelcome(), 2000);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/update-profile`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        last_name: lastName,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Store name in localStorage
+                    localStorage.setItem('userName', firstName);
+                    localStorage.setItem('userSurname', lastName);
+                    localStorage.setItem('userFullName', `${firstName} ${lastName}`);
+                    
+                    // Clear temporary storage
+                    sessionStorage.removeItem('tempFirstName');
+                    sessionStorage.removeItem('tempLastName');
+                    
+                    showToast('Account created successfully!', 'success');
+                    
+                    // Redirect to main app
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                } else {
+                    showToast(data.error || 'Failed to create account', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Network error. Please try again.', 'error');
+            }
+        }
+        
+        // Resend PIN
+        async function resendPIN() {
+            if (!currentEmail) {
+                showToast('Please enter your email first', 'error');
+                showEmailScreen();
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/send-pin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: currentEmail, isNewUser: false })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast('New code sent!', 'success');
+                } else {
+                    showToast(data.error || 'Failed to resend code', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Network error. Please try again.', 'error');
+            }
+        }
+        
+        // Check if already logged in
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                // Verify token is still valid
+                fetch(`${API_BASE}/auth/verify-token`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = 'index.html';
+                    } else {
+                        localStorage.removeItem('authToken');
+                        localStorage.removeItem('userEmail');
+                    }
+                })
+                .catch(() => {
+                    // If verification fails, stay on login page
+                });
+            }
+        });
+        
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('✅ Service Worker registered'))
+                    .catch(err => console.log('❌ Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>

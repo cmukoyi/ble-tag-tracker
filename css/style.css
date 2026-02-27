@@ -181,17 +181,17 @@ input[type="button"],
 
 /* Bottom Navigation Bar Styles */
 .nav-item {
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.7);
     position: relative;
     -webkit-tap-highlight-color: transparent;
 }
 
 .nav-item:active {
-    background-color: #f3f4f6;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .nav-item.active {
-    color: #2563eb;
+    color: #ffffff;
 }
 
 .nav-item.active::before {
@@ -202,7 +202,7 @@ input[type="button"],
     transform: translateX(-50%);
     width: 60%;
     height: 3px;
-    background-color: #2563eb;
+    background-color: #ffffff;
     border-radius: 0 0 3px 3px;
 }
 

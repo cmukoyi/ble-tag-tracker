@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#173D64">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Tracker">
@@ -32,42 +32,310 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Brand Color Overrides -->
+    <style>
+        :root {
+            --brand-primary: #173D64;
+            --brand-primary-hover: #1f4f7e;
+            --brand-primary-light: #e8eef5;
+            --brand-gradient-start: #e3f2fd;
+            --brand-gradient-mid: #bbdefb;
+            --brand-gradient-end: #90caf9;
+        }
+        .bg-blue-600 { background-color: var(--brand-primary) !important; }
+        .hover\:bg-blue-700:hover { background-color: var(--brand-primary-hover) !important; }
+        .text-blue-600 { color: var(--brand-primary) !important; }
+        .hover\:text-blue-700:hover { color: var(--brand-primary-hover) !important; }
+        .border-blue-600 { border-color: var(--brand-primary) !important; }
+        .text-blue-100 { color: rgba(255, 255, 255, 0.9) !important; }
+        .text-blue-800 { color: var(--brand-primary) !important; }
+        
+        /* Enhanced Home Screen Gradient */
+        .home-gradient {
+            background: linear-gradient(135deg, 
+                #f0f9ff 0%, 
+                #e0f2fe 25%,
+                #bae6fd 50%,
+                #7dd3fc 75%,
+                #38bdf8 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .home-gradient::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(23, 61, 100, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .home-gradient::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite reverse;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(20px, 20px) scale(1.05); }
+        }
+        
+        /* Icon with gradient effect */
+        .icon-gradient-bg {
+            background: linear-gradient(135deg, #ffffff 0%, #e0f2fe 100%);
+            box-shadow: 0 20px 60px rgba(23, 61, 100, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+        
+        .icon-gradient-bg i {
+            filter: drop-shadow(0 2px 4px rgba(23, 61, 100, 0.2));
+        }
+        
+        /* Enhanced button */
+        .enhanced-btn {
+            background: linear-gradient(135deg, var(--brand-primary) 0%, #2563eb 100%);
+            box-shadow: 0 10px 30px rgba(23, 61, 100, 0.3), 0 4px 12px rgba(23, 61, 100, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .enhanced-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(23, 61, 100, 0.4), 0 6px 16px rgba(23, 61, 100, 0.3);
+        }
+        
+        .enhanced-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Text with subtle shadow */
+        .enhanced-title {
+            text-shadow: 0 2px 4px rgba(23, 61, 100, 0.1);
+        }
+    </style>
+    
+    <!-- Authentication Check -->
+    <script>
+        // Check authentication before loading the app
+        (function() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Verify token is still valid
+            fetch(window.location.origin + '/api/auth/verify-token', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }).then(response => {
+                if (!response.ok) {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userEmail');
+                    window.location.href = 'login.html';
+                }
+            }).catch(() => {
+                // If verification fails, redirect to login
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userEmail');
+                window.location.href = 'login.html';
+            });
+        })();
+    </script>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-50 font-sans">
     
     <!-- Top Navigation Bar -->
-    <nav class="bg-blue-600 text-white shadow-lg sticky top-0 z-50">
-        <div class="flex items-center gap-3 px-4 py-3">
-            <!-- BLE Icon - Now Clickable -->
-            <button id="bleListBtn" class="p-1 hover:bg-blue-700 rounded-lg transition flex-shrink-0">
-                <i data-lucide="bluetooth" class="w-6 h-6"></i>
+    <nav class="sticky top-0 z-50 shadow-md" style="background: linear-gradient(135deg, #173D64 0%, #1f4f7e 100%);">
+        <div class="flex items-center justify-between px-4 py-3">
+            <!-- Home Icon -->
+            <button id="homeBtn" class="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition flex-shrink-0">
+                <i data-lucide="home" class="w-6 h-6 text-white"></i>
             </button>
             
-            <!-- Search Bar -->
-            <div class="flex-1 relative">
-                <input 
-                    type="text" 
-                    id="searchInput" 
-                    placeholder="Search vehicles" 
-                    class="w-full px-4 py-2 rounded-lg bg-white/90 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/50 focus:bg-white transition"
-                />
-                <!-- Search Results Dropdown -->
-                <div id="searchResults" class="hidden absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-2xl max-h-96 overflow-y-auto z-50">
-                    <div id="searchResultsList" class="py-2">
-                        <!-- Results will be populated here -->
-                    </div>
-                </div>
+            <!-- Greeting Text -->
+            <div class="flex-1 ml-3">
+                <h1 class="text-lg font-semibold text-white">Hi <span id="userName">User</span></h1>
             </div>
+            
+            <!-- User Avatar -->
+            <button id="userAvatarBtn" class="w-10 h-10 rounded-full bg-white text-blue-600 font-semibold flex items-center justify-center hover:bg-gray-100 transition shadow-md">
+                <span id="userInitial">U</span>
+            </button>
         </div>
     </nav>
 
-    <!-- BLE Tags List Panel (Top-Left Sidebar) -->
-    <div id="bleTagsPanel" class="fixed top-[60px] left-0 w-80 h-[calc(100vh-124px)] bg-white shadow-2xl transform -translate-x-full transition-transform duration-300 z-50 overflow-hidden">
+    <!-- Quick Action Tabs -->
+    <div class="bg-white border-b border-gray-200 sticky top-[60px] z-40">
+        <div class="flex items-center justify-around py-3">
+            <!-- QR Scan -->
+            <button id="qrScanBtn" class="flex flex-col items-center gap-1 px-6 py-2 hover:bg-blue-50 rounded-lg transition">
+                <i data-lucide="qr-code" class="w-6 h-6 text-blue-600"></i>
+                <span class="text-xs font-medium text-gray-700">Scan QR</span>
+            </button>
+            
+            <!-- Alerts -->
+            <button id="alertsBtn" class="flex flex-col items-center gap-1 px-6 py-2 hover:bg-blue-50 rounded-lg transition relative">
+                <i data-lucide="bell" class="w-6 h-6 text-blue-600"></i>
+                <span class="text-xs font-medium text-gray-700">Alerts</span>
+                <span id="alertBadge" class="hidden absolute top-0 right-3 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Home Screen (Default View) -->
+    <div id="homeScreen" class="fixed inset-0 top-[116px] z-20 home-gradient overflow-hidden">
+        <!-- Main Content Center -->
+        <div class="flex flex-col items-center justify-center h-full px-6 py-4 relative z-10">
+            <!-- BLE Icon Circle with enhanced gradient - smaller -->
+            <div class="icon-gradient-bg rounded-full p-6 mb-4 transform transition-all duration-300 hover:scale-105">
+                <i data-lucide="bluetooth" class="w-16 h-16 text-blue-600"></i>
+            </div>
+            
+            <!-- Title with gradient text effect - smaller -->
+            <h2 class="text-2xl font-bold mb-2 text-center enhanced-title" style="background: linear-gradient(135deg, #173D64 0%, #2563eb 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                BLE Tag Tracker
+            </h2>
+            <p class="text-gray-700 font-medium mb-6 text-center max-w-xs text-sm leading-snug">
+                Track your assets in real-time with our advanced BLE technology
+            </p>
+            
+            <!-- Enhanced Add Button with gradient - smaller -->
+            <button id="mainAddBtn" class="enhanced-btn text-white px-8 py-3 rounded-xl font-bold text-base flex items-center gap-2 mb-3">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                Add BLE Tag
+            </button>
+            
+            <!-- My Tags Button (Secondary) - smaller -->
+            <button id="myTagsBtn" class="text-blue-700 bg-white bg-opacity-60 backdrop-blur-sm px-6 py-2 rounded-lg font-semibold hover:bg-opacity-80 transition-all flex items-center gap-2 shadow-md text-sm">
+                <i data-lucide="list" class="w-4 h-4"></i>
+                View My Assets
+            </button>
+            
+            <!-- Feature highlights - compact -->
+            <div class="mt-6 grid grid-cols-3 gap-3 max-w-xs w-full px-2">
+                <div class="text-center">
+                    <div class="bg-white bg-opacity-70 backdrop-blur-sm rounded-lg p-2 mb-1 shadow-sm">
+                        <i data-lucide="map-pin" class="w-5 h-5 text-blue-600 mx-auto"></i>
+                    </div>
+                    <p class="text-[10px] font-medium text-gray-700 leading-tight">Real-time<br>Tracking</p>
+                </div>
+                <div class="text-center">
+                    <div class="bg-white bg-opacity-70 backdrop-blur-sm rounded-lg p-2 mb-1 shadow-sm">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-blue-600 mx-auto"></i>
+                    </div>
+                    <p class="text-[10px] font-medium text-gray-700 leading-tight">Secure &<br>Private</p>
+                </div>
+                <div class="text-center">
+                    <div class="bg-white bg-opacity-70 backdrop-blur-sm rounded-lg p-2 mb-1 shadow-sm">
+                        <i data-lucide="zap" class="w-5 h-5 text-blue-600 mx-auto"></i>
+                    </div>
+                    <p class="text-[10px] font-medium text-gray-700 leading-tight">Instant<br>Alerts</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Tag Modal -->
+    <div id="addTagModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="bg-blue-600 text-white p-6 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold">Add BLE Tag</h3>
+                    <button id="closeAddModal" class="p-2 hover:bg-blue-700 rounded-lg transition">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Content -->
+            <div class="p-6">
+                <!-- Method Selection -->
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <button id="selectQrMethod" class="method-btn flex flex-col items-center gap-2 p-4 border-2 border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition">
+                        <i data-lucide="qr-code" class="w-8 h-8 text-blue-600"></i>
+                        <span class="text-sm font-medium text-gray-700">Scan QR</span>
+                    </button>
+                    <button id="selectManualMethod" class="method-btn active flex flex-col items-center gap-2 p-4 border-2 border-blue-500 bg-blue-50 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition">
+                        <i data-lucide="keyboard" class="w-8 h-8 text-blue-600"></i>
+                        <span class="text-sm font-medium text-gray-700">Type IMEI</span>
+                    </button>
+                </div>
+                
+                <!-- QR Scanner View -->
+                <div id="qrScannerView" class="hidden">
+                    <div class="bg-gray-100 rounded-xl p-8 text-center mb-4">
+                        <i data-lucide="camera" class="w-16 h-16 text-gray-400 mx-auto mb-3"></i>
+                        <p class="text-gray-600 mb-4">Position QR code within frame</p>
+                        <video id="qrVideo" class="hidden w-full rounded-lg"></video>
+                        <canvas id="qrCanvas" class="hidden"></canvas>
+                    </div>
+                    <button id="startQrScan" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+                        <i data-lucide="camera" class="inline w-5 h-5 mr-2"></i>
+                        Start Camera
+                    </button>
+                </div>
+                
+                <!-- Manual Entry View -->
+                <div id="manualEntryView">
+                    <div class="mb-4">
+                        <label for="imeiInput" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i data-lucide="hash" class="inline w-4 h-4"></i> IMEI Number
+                        </label>
+                        <input 
+                            type="text" 
+                            id="imeiInput" 
+                            placeholder="Enter 15-digit IMEI" 
+                            maxlength="15"
+                            class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                        />
+                        <p class="text-xs text-gray-500 mt-1">Example: 867747079036032</p>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="tagDescription" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i data-lucide="tag" class="inline w-4 h-4"></i> Tag Name (Optional)
+                        </label>
+                        <input 
+                            type="text" 
+                            id="tagDescription" 
+                            placeholder="e.g., My Car, Office Keys" 
+                            class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                        />
+                    </div>
+                    
+                    <button id="saveTagBtn" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        <i data-lucide="save" class="w-5 h-5"></i>
+                        Save Tag
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BLE Tags List Panel (Sidebar) -->
+    <div id="bleTagsPanel" class="fixed inset-0 top-[116px] bg-white shadow-2xl transform -translate-x-full transition-transform duration-300 z-50 overflow-hidden pb-20">
         <div class="flex flex-col h-full">
             <!-- Header -->
             <div class="p-4 border-b border-gray-200 bg-blue-600 text-white">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-bold">BLE Tags</h2>
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <i data-lucide="tag" class="w-5 h-5"></i>
+                        My Tags
+                    </h2>
                     <button id="closeBleListBtn" class="p-2 hover:bg-blue-700 rounded-lg transition">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
@@ -77,23 +345,23 @@
             <!-- Loading Indicator -->
             <div id="vehiclesLoading" class="hidden p-4 text-center">
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p class="text-sm text-gray-500 mt-2">Loading vehicles...</p>
+                <p class="text-sm text-gray-500 mt-2">Loading tags...</p>
             </div>
             
             <!-- Tags List (Scrollable) -->
             <div id="bleTagsList" class="flex-1 overflow-y-auto">
-                <!-- Vehicles will be populated here -->
+                <!-- Tags will be populated here -->
                 <div class="text-center text-gray-500 py-8">
                     <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 text-gray-400"></i>
-                    <p>No vehicles found</p>
-                    <p class="text-sm mt-1">Click to load vehicles</p>
+                    <p class="font-medium">No tags yet</p>
+                    <p class="text-sm mt-1">Add your first BLE tag to get started</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Map Container (Full Screen) -->
-    <div id="map" class="w-full h-screen"></div>
+    <!-- Map Container (Hidden by default) -->
+    <div id="map" class="hidden w-full h-screen"></div>
 
     <!-- Reports Panel (Hidden by default, shown when Reports tab clicked) -->
     <div id="reportsPanel" class="hidden fixed inset-0 bg-gray-50 z-30 overflow-y-auto pb-20 pt-16">
@@ -172,8 +440,8 @@
                 <p class="text-gray-600">Loading journeys...</p>
             </div>
 
-            <!-- Trips List -->
-            <div id="tripsList" class="space-y-3">
+            <!-- Trips List (Compact) -->
+            <div id="tripsList" class="space-y-2">
                 <!-- Empty state -->
                 <div id="tripsEmptyState" class="bg-white rounded-lg shadow-md p-12 text-center">
                     <i data-lucide="inbox" class="w-16 h-16 mx-auto mb-4 text-gray-300"></i>
@@ -196,8 +464,8 @@
         </div>
     </div>
 
-    <!-- Floating Action Button -->
-    <button id="addTagBtn" class="fixed bottom-20 right-4 bg-blue-600 text-white p-4 rounded-full shadow-2xl hover:bg-blue-700 transition-all active:scale-95 z-40">
+    <!-- Floating Action Button (Hidden for demo) -->
+    <button id="addTagBtn" class="hidden fixed bottom-20 right-4 bg-blue-600 text-white p-4 rounded-full shadow-2xl hover:bg-blue-700 transition-all active:scale-95 z-40">
         <i data-lucide="plus" class="w-7 h-7"></i>
     </button>
 
@@ -753,31 +1021,25 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Bottom Navigation Bar -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-bottom">
+    <!-- Bottom Navigation Bar (Hidden until first tag is added) -->
+    <nav id="bottomNav" class="hidden fixed bottom-0 left-0 right-0 z-50 safe-area-bottom shadow-2xl" style="background: linear-gradient(135deg, #173D64 0%, #1f4f7e 100%);">
         <div class="flex items-center justify-around h-16">
-            <!-- Map Tab -->
+            <!-- Location Tab -->
             <button id="navMap" class="nav-item flex flex-col items-center justify-center flex-1 h-full transition-colors active">
-                <i data-lucide="map" class="w-6 h-6 mb-1"></i>
-                <span class="text-xs font-medium">MAP</span>
+                <i data-lucide="map-pin" class="w-6 h-6 mb-1 text-white"></i>
+                <span class="text-xs font-medium text-white">LOCATION</span>
             </button>
             
-            <!-- Reports Tab -->
+            <!-- Journeys Tab -->
             <button id="navReports" class="nav-item flex flex-col items-center justify-center flex-1 h-full transition-colors">
-                <i data-lucide="file-text" class="w-6 h-6 mb-1"></i>
-                <span class="text-xs font-medium">REPORTS</span>
+                <i data-lucide="route" class="w-6 h-6 mb-1 text-white"></i>
+                <span class="text-xs font-medium text-white">JOURNEYS</span>
             </button>
             
             <!-- Settings Tab -->
             <button id="navSettings" class="nav-item flex flex-col items-center justify-center flex-1 h-full transition-colors">
-                <i data-lucide="settings" class="w-6 h-6 mb-1"></i>
-                <span class="text-xs font-medium">SETTINGS</span>
-            </button>
-            
-            <!-- Account Tab -->
-            <button id="navAccount" class="nav-item flex flex-col items-center justify-center flex-1 h-full transition-colors">
-                <i data-lucide="user" class="w-6 h-6 mb-1"></i>
-                <span class="text-xs font-medium">ACCOUNT</span>
+                <i data-lucide="settings" class="w-6 h-6 mb-1 text-white"></i>
+                <span class="text-xs font-medium text-white">SETTINGS</span>
             </button>
         </div>
     </nav>
@@ -785,6 +1047,418 @@
     <!-- Custom Scripts -->
     <script src="js/scanner.js"></script>
     <script src="js/map.js"></script>
+    
+    <!-- Demo Data Initialization -->
+    <script>
+        // DEMO: Hardcoded BLE Tags for demo purposes with London locations
+        function initializeDemoData() {
+            const demoTags = [
+                {
+                    imei: '868695062096281',
+                    description: 'Office Building Tag',
+                    vehicle_id: 'DEMO001',
+                    lastKnownPosition: {
+                        latitude: 51.5074,  // London - Big Ben area
+                        longitude: -0.1278,
+                        utcTimestamp: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
+                        speed: 0
+                    }
+                },
+                {
+                    imei: '868695062096282',
+                    description: 'Company Vehicle',
+                    vehicle_id: 'DEMO002',
+                    lastKnownPosition: {
+                        latitude: 51.5155,  // London - King's Cross area
+                        longitude: -0.1255,
+                        utcTimestamp: new Date(Date.now() - 900000).toISOString(), // 15 minutes ago
+                        speed: 15
+                    }
+                },
+                {
+                    imei: '868695062096283',
+                    description: 'Warehouse Asset',
+                    vehicle_id: 'DEMO003',
+                    lastKnownPosition: {
+                        latitude: 51.5007,  // London - Tower Bridge area
+                        longitude: -0.1246,
+                        utcTimestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+                        speed: 0
+                    }
+                },
+                {
+                    imei: '868695062096284',
+                    description: 'Delivery Van',
+                    vehicle_id: 'DEMO004',
+                    lastKnownPosition: {
+                        latitude: 51.5194,  // London - Camden area
+                        longitude: -0.1270,
+                        utcTimestamp: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+                        speed: 25
+                    }
+                }
+            ];
+            
+            // Always set demo data for demo mode
+            localStorage.setItem('bleTracker_savedTags', JSON.stringify(demoTags));
+            console.log('🎭 DEMO: Initialized 4 demo BLE tags in London');
+            console.log('🎭 DEMO: Saved to localStorage:', localStorage.getItem('bleTracker_savedTags'));
+            return demoTags;
+        }
+        
+        // Wait for DOM to load before initializing
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                initializeDemoData();
+            });
+        } else {
+            // DOM already loaded
+            initializeDemoData();
+        }
+    </script>
+    
+    <!-- Authentication Scripts -->
+    <script>
+        // Check if user has tags and show/hide bottom nav accordingly
+        function checkAndUpdateNavVisibility() {
+            const tags = JSON.parse(localStorage.getItem('bleTracker_savedTags') || '[]');
+            const bottomNav = document.getElementById('bottomNav');
+            const homeScreen = document.getElementById('homeScreen');
+            
+            if (tags.length > 0) {
+                // User has tags, show bottom navigation
+                bottomNav.classList.remove('hidden');
+                if (homeScreen) {
+                    homeScreen.classList.remove('pb-20'); // Remove extra padding
+                    homeScreen.classList.add('pb-0');
+                }
+            } else {
+                // No tags yet, hide bottom navigation
+                bottomNav.classList.add('hidden');
+                if (homeScreen) {
+                    homeScreen.classList.remove('pb-0');
+                    homeScreen.classList.add('pb-20');
+                }
+            }
+        }
+        
+        // Run on page load
+        checkAndUpdateNavVisibility();
+        
+        // Function to show tag on map
+        function showTagOnMap(imei) {
+            console.log('🗺️ Showing tag on map:', imei);
+            
+            // Close the tags panel
+            document.getElementById('bleTagsPanel').classList.remove('translate-x-0');
+            document.getElementById('bleTagsPanel').classList.add('-translate-x-full');
+            
+            // Show map
+            document.getElementById('homeScreen').classList.add('hidden');
+            document.getElementById('map').classList.remove('hidden');
+            document.getElementById('map').style.display = 'block';
+            
+            // Try to call the map function if available
+            if (typeof window.showVehicleOnMap === 'function') {
+                window.showVehicleOnMap(imei);
+            } else {
+                console.log('⚠️ Map function not available yet');
+            }
+        }
+        
+        // Make it globally accessible
+        window.showTagOnMap = showTagOnMap;
+        
+        // Display user info
+        const userEmail = localStorage.getItem('userEmail');
+        const userName = localStorage.getItem('userName') || 'User';
+        
+        if (userEmail) {
+            // Set user initial from name or email
+            const initial = userName.charAt(0).toUpperCase();
+            document.getElementById('userInitial').textContent = initial;
+            document.getElementById('userName').textContent = userName;
+        }
+        
+        // Home button - return to home screen
+        document.getElementById('homeBtn').addEventListener('click', () => {
+            document.getElementById('homeScreen').classList.remove('hidden');
+            document.getElementById('map').classList.add('hidden');
+            document.getElementById('map').style.display = 'none';
+            document.getElementById('reportsPanel').classList.add('hidden');
+            document.getElementById('bleTagsPanel').classList.remove('translate-x-0');
+            document.getElementById('bleTagsPanel').classList.add('-translate-x-full');
+            
+            // Close settings if open
+            const settingsPanel = document.getElementById('settingsPanel');
+            if (settingsPanel) settingsPanel.classList.add('translate-x-full');
+            
+            // Remove active from all nav items
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        });
+        
+        // QR Scan quick action
+        document.getElementById('qrScanBtn').addEventListener('click', () => {
+            openAddModal('qr');
+        });
+        
+        // Alerts button
+        document.getElementById('alertsBtn').addEventListener('click', () => {
+            alert('Alerts feature coming soon!');
+        });
+        
+        // Main Add button on home screen
+        document.getElementById('mainAddBtn').addEventListener('click', () => {
+            openAddModal('manual');
+        });
+        
+        // My Tags button - show tags panel
+        document.getElementById('myTagsBtn').addEventListener('click', () => {
+            console.log('🔍 View My Assets clicked');
+            
+            // Get saved tags from localStorage
+            const savedTags = JSON.parse(localStorage.getItem('bleTracker_savedTags') || '[]');
+            console.log('📦 Found tags in localStorage:', savedTags.length, savedTags);
+            
+            // Populate the list directly
+            const bleTagsList = document.getElementById('bleTagsList');
+            const vehiclesLoading = document.getElementById('vehiclesLoading');
+            
+            if (vehiclesLoading) vehiclesLoading.classList.add('hidden');
+            
+            if (savedTags.length === 0) {
+                bleTagsList.innerHTML = `
+                    <div class="text-center text-gray-500 py-8 px-4">
+                        <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 text-gray-400"></i>
+                        <p class="font-medium">No tags yet</p>
+                        <p class="text-sm mt-1">Add your first BLE tag to get started</p>
+                    </div>
+                `;
+                lucide.createIcons();
+            } else {
+                bleTagsList.innerHTML = savedTags.map(tag => {
+                    const imei = tag.imei || tag;
+                    const description = tag.description || 'BLE Tag';
+                    const hasLocation = tag.lastKnownPosition && tag.lastKnownPosition.latitude && tag.lastKnownPosition.longitude;
+                    const timestamp = tag.lastKnownPosition?.utcTimestamp;
+                    
+                    // Format timestamp
+                    let timeAgo = 'Unknown';
+                    if (timestamp) {
+                        const diff = Date.now() - new Date(timestamp).getTime();
+                        const minutes = Math.floor(diff / 60000);
+                        const hours = Math.floor(diff / 3600000);
+                        if (minutes < 60) timeAgo = `${minutes}m ago`;
+                        else timeAgo = `${hours}h ago`;
+                    }
+                    
+                    return `
+                        <div class="vehicle-item p-3 border-b border-gray-200 hover:bg-blue-50 cursor-pointer transition" 
+                             data-imei="${imei}"
+                             onclick="showTagOnMap('${imei}')">
+                            <div class="flex items-start gap-2">
+                                <div class="flex-shrink-0 mt-1">
+                                    <div class="w-10 h-10 rounded-full ${hasLocation ? 'bg-green-100' : 'bg-gray-100'} flex items-center justify-center">
+                                        <i data-lucide="${hasLocation ? 'radio' : 'radio-tower'}" class="w-5 h-5 ${hasLocation ? 'text-green-600' : 'text-gray-400'}"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-semibold text-gray-900 truncate">${description}</h4>
+                                    <p class="text-xs text-gray-500 font-mono truncate">${imei}</p>
+                                    ${hasLocation ? `
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <i data-lucide="map-pin" class="w-3 h-3 text-green-600"></i>
+                                            <span class="text-xs text-green-600 font-medium">${timeAgo}</span>
+                                        </div>
+                                    ` : `
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <i data-lucide="map-pin-off" class="w-3 h-3 text-gray-400"></i>
+                                            <span class="text-xs text-gray-500">No location</span>
+                                        </div>
+                                    `}
+                                </div>
+                                <button onclick="event.stopPropagation(); showTagOnMap('${imei}')" 
+                                        class="flex-shrink-0 text-blue-600 hover:text-blue-700 p-2">
+                                    <i data-lucide="map" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                lucide.createIcons();
+            }
+            
+            // Show the panel
+            document.getElementById('homeScreen').classList.add('hidden');
+            document.getElementById('bleTagsPanel').classList.remove('-translate-x-full');
+            document.getElementById('bleTagsPanel').classList.add('translate-x-0');
+        });
+        
+        // Close tags panel
+        document.getElementById('closeBleListBtn').addEventListener('click', () => {
+            document.getElementById('bleTagsPanel').classList.remove('translate-x-0');
+            document.getElementById('bleTagsPanel').classList.add('-translate-x-full');
+            document.getElementById('homeScreen').classList.remove('hidden');
+        });
+        
+        // User avatar - show profile menu (placeholder)
+        document.getElementById('userAvatarBtn').addEventListener('click', () => {
+            alert('Profile menu coming soon!');
+        });
+        
+        // Add Tag Modal functions
+        function openAddModal(method = 'manual') {
+            document.getElementById('addTagModal').classList.remove('hidden');
+            
+            if (method === 'qr') {
+                document.getElementById('selectQrMethod').click();
+            } else {
+                document.getElementById('selectManualMethod').click();
+            }
+            
+            // Reinitialize icons
+            setTimeout(() => lucide.createIcons(), 100);
+        }
+        
+        function closeAddModal() {
+            document.getElementById('addTagModal').classList.add('hidden');
+            // Reset form
+            document.getElementById('imeiInput').value = '';
+            document.getElementById('tagDescription').value = '';
+        }
+        
+        document.getElementById('closeAddModal').addEventListener('click', closeAddModal);
+        
+        // Click outside modal to close
+        document.getElementById('addTagModal').addEventListener('click', (e) => {
+            if (e.target.id === 'addTagModal') {
+                closeAddModal();
+            }
+        });
+        
+        // Method selection in modal
+        document.getElementById('selectQrMethod').addEventListener('click', function() {
+            document.querySelectorAll('.method-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-blue-500', 'bg-blue-50');
+                btn.classList.add('border-gray-300');
+            });
+            this.classList.add('active', 'border-blue-500', 'bg-blue-50');
+            this.classList.remove('border-gray-300');
+            
+            document.getElementById('qrScannerView').classList.remove('hidden');
+            document.getElementById('manualEntryView').classList.add('hidden');
+        });
+        
+        document.getElementById('selectManualMethod').addEventListener('click', function() {
+            document.querySelectorAll('.method-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-blue-500', 'bg-blue-50');
+                btn.classList.add('border-gray-300');
+            });
+            this.classList.add('active', 'border-blue-500', 'bg-blue-50');
+            this.classList.remove('border-gray-300');
+            
+            document.getElementById('qrScannerView').classList.add('hidden');
+            document.getElementById('manualEntryView').classList.remove('hidden');
+        });
+        
+        // Save Tag button
+        document.getElementById('saveTagBtn').addEventListener('click', async () => {
+            const imei = document.getElementById('imeiInput').value.trim();
+            const description = document.getElementById('tagDescription').value.trim() || `Tag-${imei.slice(-4)}`;
+            const saveBtn = document.getElementById('saveTagBtn');
+            
+            if (!imei || imei.length < 15) {
+                alert('Please enter a valid 15-digit IMEI number');
+                return;
+            }
+            
+            // Check if tag already exists in localStorage
+            const tags = JSON.parse(localStorage.getItem('bleTracker_savedTags') || '[]');
+            if (tags.some(tag => tag.imei === imei)) {
+                alert('This tag is already added!');
+                return;
+            }
+            
+            // Disable button and show loading state
+            saveBtn.disabled = true;
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i data-lucide="loader" class="w-5 h-5 animate-spin"></i> Validating...';
+            lucide.createIcons();
+            
+            try {
+                // Validate IMEI with backend API
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`${window.location.origin}/api/validate-imei/${imei}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // IMEI is valid, save it
+                    tags.push({ imei, description });
+                    localStorage.setItem('bleTracker_savedTags', JSON.stringify(tags));
+                    
+                    const isFirstTag = tags.length === 1;
+                    
+                    alert(`Tag "${description}" added successfully!${isFirstTag ? '\n\nNavigations are now available!' : ''}`);
+                    closeAddModal();
+                    
+                    // Update bottom nav visibility
+                    checkAndUpdateNavVisibility();
+                    
+                    // Refresh any tag lists
+                    if (typeof loadSavedTags === 'function') {
+                        loadSavedTags();
+                    }
+                } else if (response.status === 404) {
+                    // IMEI not found
+                    alert('IMEI unknown error\n\nThis IMEI is not registered in the system. Please check the number and try again.');
+                } else {
+                    // Other error
+                    alert(data.error || 'Unable to validate IMEI. Please try again.');
+                }
+            } catch (error) {
+                console.error('IMEI validation error:', error);
+                alert('Network error. Please check your connection and try again.');
+            } finally {
+                // Re-enable button and restore original text
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                lucide.createIcons();
+            }
+        });
+        
+        // Logout handler (moved from previous location)
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                if (confirm('Are you sure you want to logout?')) {
+                    const token = localStorage.getItem('authToken');
+                    
+                    try {
+                        await fetch(window.location.origin + '/api/auth/logout', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                    }
+                    
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userEmail');
+                    localStorage.removeItem('userName');
+                    
+                    window.location.href = 'login.html';
+                }
+            });
+        }
+    </script>
     
     <!-- Initialize Lucide Icons -->
     <script>

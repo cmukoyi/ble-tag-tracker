@@ -1,15 +1,15 @@
-const CACHE_NAME = 'vehicle-tracker-v17';  // ⬅️ UPDATED VERSION
-const RUNTIME_CACHE = 'runtime-cache-v17';
+const CACHE_NAME = 'ble-tracker-v32';
+const RUNTIME_CACHE = 'runtime-cache-v20';
 
 // Files to cache immediately on install
 const PRECACHE_URLS = [
   '/',
   '/index.html',
-  '/css/style.css',
-  '/js/map.js',
+  '/login.html',
+  '/admin-login.html',
+  '/admin-dashboard.html',
   '/manifest.json',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  '/assets/logo.png',
   'https://cdn.tailwindcss.com',
   'https://unpkg.com/lucide@latest'
 ];

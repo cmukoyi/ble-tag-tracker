@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="theme-color" content="#173D64">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="BLE Admin">
+    <meta name="description" content="BLE Tag Tracker Admin Dashboard">
+    <title>Admin Dashboard - BLE Tag Tracker</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            background: #f3f4f6;
+        }
+        .bg-accent {
+            background: #173D64;
+        }
+        .text-accent {
+            color: #173D64;
+        }
+        .border-accent {
+            border-color: #173D64;
+        }
+        .btn-primary {
+            background: #173D64;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: #1f4f7e;
+            transform: translateY(-1px);
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Header -->
+    <header class="bg-accent shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="shield" class="w-8 h-8 text-white"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Admin Portal</h1>
+                        <p class="text-sm text-gray-200">Billing & User Management</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            
+            <div class="stat-card p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-600 text-sm font-medium">Total Users</span>
+                    <i data-lucide="users" class="w-5 h-5 text-blue-500"></i>
+                </div>
+                <div class="text-3xl font-bold text-gray-800" id="totalUsers">-</div>
+            </div>
+            
+            <div class="stat-card p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-600 text-sm font-medium">Cost per User</span>
+                    <i data-lucide="dollar-sign" class="w-5 h-5 text-green-500"></i>
+                </div>
+                <div class="text-3xl font-bold text-gray-800">
+                    <span id="currency">USD</span> <span id="costPerUser">-</span>
+                </div>
+            </div>
+            
+            <div class="stat-card p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-600 text-sm font-medium">Monthly Revenue</span>
+                    <i data-lucide="trending-up" class="w-5 h-5 text-purple-500"></i>
+                </div>
+                <div class="text-3xl font-bold text-gray-800">
+                    <span id="currencyRevenue">USD</span> <span id="monthlyRevenue">-</span>
+                </div>
+            </div>
+            
+            <div class="stat-card p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-600 text-sm font-medium">Total IMEIs</span>
+                    <i data-lucide="smartphone" class="w-5 h-5 text-orange-500"></i>
+                </div>
+                <div class="text-3xl font-bold text-gray-800" id="totalImeis">-</div>
+            </div>
+            
+        </div>
+        
+        <!-- Actions Bar -->
+        <div class="flex flex-wrap gap-4 mb-6">
+            <button onclick="showBillingConfig()" class="btn-primary text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+                Billing Settings
+            </button>
+            <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                Export to Excel
+            </button>
+            <button onclick="refreshData()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                Refresh
+            </button>
+        </div>
+        
+        <!-- Users Table -->
+        <div class="card p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <i data-lucide="users" class="w-6 h-6"></i>
+                Registered Users
+            </h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full" id="usersTable">
+                    <thead>
+                        <tr class="border-b-2 border-gray-200">
+                            <th class="text-left py-3 px-4 text-gray-600 font-semibold">Email</th>
+                            <th class="text-left py-3 px-4 text-gray-600 font-semibold">Created Date</th>
+                            <th class="text-left py-3 px-4 text-gray-600 font-semibold">Last Login</th>
+                            <th class="text-left py-3 px-4 text-gray-600 font-semibold">IMEIs</th>
+                            <th class="text-left py-3 px-4 text-gray-600 font-semibold">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="5" class="text-center py-8 text-gray-500">
+                                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-2"></i>
+                                <div>Loading users...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+    </main>
+    
+    <!-- Billing Config Modal -->
+    <div id="billingModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Billing Settings</h3>
+                <button onclick="closeBillingConfig()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <form onsubmit="updateBillingConfig(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Cost per User (Monthly)</label>
+                    <div class="flex gap-2">
+                        <select id="currencyInput" class="px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-accent focus:outline-none">
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                            <option value="ZAR">ZAR</option>
+                        </select>
+                        <input 
+                            type="number" 
+                            id="costInput"
+                            step="0.01"
+                            min="0"
+                            required
+                            class="flex-1 px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-accent focus:outline-none"
+                            placeholder="10.00"
+                        >
+                    </div>
+                </div>
+                
+                <button type="submit" class="w-full btn-primary text-white py-3 px-6 rounded-lg font-semibold">
+                    Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- IMEI Modal -->
+    <div id="imeiModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">Manage IMEIs</h3>
+                    <p class="text-sm text-gray-600" id="imeiModalEmail">user@example.com</p>
+                </div>
+                <button onclick="closeImeiModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <!-- Add IMEI Form -->
+            <form onsubmit="addImei(event)" class="mb-6">
+                <div class="flex gap-2">
+                    <input 
+                        type="text" 
+                        id="newImeiInput"
+                        required
+                        placeholder="Enter IMEI number"
+                        class="flex-1 px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-accent focus:outline-none"
+                    >
+                    <button type="submit" class="btn-primary text-white px-6 py-3 rounded-lg flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        Add
+                    </button>
+                </div>
+            </form>
+            
+            <!-- IMEIs List -->
+            <div id="imeisList" class="space-y-2">
+                <div class="text-center py-8 text-gray-500">
+                    <i data-lucide="smartphone" class="w-12 h-12 mx-auto mb-2 text-gray-400"></i>
+                    <div>No IMEIs added yet</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed bottom-4 right-4 bg-white rounded-xl shadow-lg px-6 py-4 z-50 border-l-4">
+        <div class="flex items-center gap-3">
+            <i data-lucide="info" class="w-5 h-5"></i>
+            <span id="toastMessage"></span>
+        </div>
+    </div>
+    
+    <script>
+        lucide.createIcons();
+        
+        const API_BASE = window.location.origin + '/api';
+        let currentUserEmail = '';
+        
+        // Check authentication
+        const adminToken = localStorage.getItem('adminToken');
+        if (!adminToken) {
+            window.location.href = '/admin';
+        }
+        
+        // API helper
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            const options = {
+                method,
+                headers: {
+                    'Authorization': `Admin ${adminToken}`,
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            
+            if (response.status === 401) {
+                logout();
+                return null;
+            }
+            
+            return response;
+        }
+        
+        // Toast notification
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            
+            // Set color based on type
+            toast.className = 'fixed bottom-4 right-4 bg-white rounded-xl shadow-lg px-6 py-4 z-50 border-l-4';
+            if (type === 'success') {
+                toast.classList.add('border-green-500');
+            } else if (type === 'error') {
+                toast.classList.add('border-red-500');
+            } else {
+                toast.classList.add('border-blue-500');
+            }
+            
+            toast.classList.remove('hidden');
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+        
+        // Load all data
+        async function loadData() {
+            try {
+                // Get users
+                const usersResponse = await apiCall('/admin/users');
+                const usersData = await usersResponse.json();
+                
+                // Get billing config
+                const billingResponse = await apiCall('/admin/billing/config');
+                const billingData = await billingResponse.json();
+                
+                // Get billing calculation
+                const calcResponse = await apiCall('/admin/billing/calculate');
+                const calcData = await calcResponse.json();
+                
+                if (usersData.success && billingData.success && calcData.success) {
+                    updateStats(usersData, billingData, calcData);
+                    updateUsersTable(usersData.users);
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showToast('Failed to load data', 'error');
+            }
+        }
+        
+        // Update stats
+        function updateStats(usersData, billingData, calcData) {
+            document.getElementById('totalUsers').textContent = usersData.total_users;
+            document.getElementById('currency').textContent = billingData.config.currency;
+            document.getElementById('costPerUser').textContent = billingData.config.cost_per_user.toFixed(2);
+            document.getElementById('currencyRevenue').textContent = calcData.billing.currency;
+            document.getElementById('monthlyRevenue').textContent = calcData.billing.total_monthly_cost.toFixed(2);
+            
+            // Calculate total IMEIs
+            let totalImeis = 0;
+            usersData.users.forEach(user => {
+                totalImeis += user.imei_count;
+            });
+            document.getElementById('totalImeis').textContent = totalImeis;
+        }
+        
+        // Update users table
+        function updateUsersTable(users) {
+            const tbody = document.getElementById('usersTableBody');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-gray-500">
+                            <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2"></i>
+                            <div>No users registered yet</div>
+                        </td>
+                    </tr>
+                `;
+                lucide.createIcons();
+                return;
+            }
+            
+            tbody.innerHTML = users.map(user => {
+                const createdDate = new Date(user.created_at).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                const lastLogin = new Date(user.last_login).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                
+                return `
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-4 px-4 font-medium text-gray-800">${user.email}</td>
+                        <td class="py-4 px-4 text-gray-600 text-sm">${createdDate}</td>
+                        <td class="py-4 px-4 text-gray-600 text-sm">${lastLogin}</td>
+                        <td class="py-4 px-4">
+                            <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                <i data-lucide="smartphone" class="w-4 h-4"></i>
+                                ${user.imei_count}
+                            </span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <button onclick="showImeiModal('${user.email}')" class="text-accent hover:text-blue-700 font-medium text-sm flex items-center gap-1">
+                                <i data-lucide="edit" class="w-4 h-4"></i>
+                                Manage IMEIs
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+        }
+        
+        // Billing config modal
+        function showBillingConfig() {
+            apiCall('/admin/billing/config')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('costInput').value = data.config.cost_per_user;
+                        document.getElementById('currencyInput').value = data.config.currency;
+                        document.getElementById('billingModal').classList.remove('hidden');
+                        lucide.createIcons();
+                    }
+                });
+        }
+        
+        function closeBillingConfig() {
+            document.getElementById('billingModal').classList.add('hidden');
+        }
+        
+        async function updateBillingConfig(event) {
+            event.preventDefault();
+            
+            const cost = parseFloat(document.getElementById('costInput').value);
+            const currency = document.getElementById('currencyInput').value;
+            
+            try {
+                const response = await apiCall('/admin/billing/config', 'PUT', {
+                    cost_per_user: cost,
+                    currency: currency
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Billing settings updated', 'success');
+                    closeBillingConfig();
+                    refreshData();
+                } else {
+                    showToast('Failed to update settings', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Network error', 'error');
+            }
+        }
+        
+        // IMEI management
+        async function showImeiModal(email) {
+            currentUserEmail = email;
+            document.getElementById('imeiModalEmail').textContent = email;
+            document.getElementById('newImeiInput').value = '';
+            
+            // Get user IMEIs
+            const response = await apiCall('/admin/users');
+            const data = await response.json();
+            
+            if (data.success) {
+                const user = data.users.find(u => u.email === email);
+                if (user) {
+                    updateImeisList(user.imeis);
+                }
+            }
+            
+            document.getElementById('imeiModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        
+        function closeImeiModal() {
+            document.getElementById('imeiModal').classList.add('hidden');
+        }
+        
+        function updateImeisList(imeis) {
+            const imeisList = document.getElementById('imeisList');
+            
+            if (imeis.length === 0) {
+                imeisList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i data-lucide="smartphone" class="w-12 h-12 mx-auto mb-2 text-gray-400"></i>
+                        <div>No IMEIs added yet</div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+            
+            imeisList.innerHTML = imeis.map(imei => {
+                const addedDate = new Date(imei.added_date).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                return `
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <div class="font-medium text-gray-800">${imei.imei}</div>
+                            <div class="text-sm text-gray-500">Added: ${addedDate}</div>
+                        </div>
+                        <button onclick="removeImei('${imei.imei}')" class="text-red-600 hover:text-red-700 p-2">
+                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+        }
+        
+        async function addImei(event) {
+            event.preventDefault();
+            
+            const imei = document.getElementById('newImeiInput').value.trim();
+            
+            if (!imei) return;
+            
+            try {
+                const response = await apiCall(`/admin/user/${currentUserEmail}/imeis`, 'POST', { imei });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('IMEI added successfully', 'success');
+                    document.getElementById('newImeiInput').value = '';
+                    showImeiModal(currentUserEmail); // Refresh
+                    refreshData();
+                } else {
+                    showToast(data.error || 'Failed to add IMEI', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Network error', 'error');
+            }
+        }
+        
+        async function removeImei(imei) {
+            if (!confirm('Are you sure you want to remove this IMEI?')) {
+                return;
+            }
+            
+            try {
+                const response = await apiCall(`/admin/user/${currentUserEmail}/imeis/${imei}`, 'DELETE');
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('IMEI removed successfully', 'success');
+                    showImeiModal(currentUserEmail); // Refresh
+                    refreshData();
+                } else {
+                    showToast(data.error || 'Failed to remove IMEI', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Network error', 'error');
+            }
+        }
+        
+        // Export to Excel
+        async function exportToExcel() {
+            try {
+                showToast('Generating Excel file...', 'info');
+                
+                const response = await fetch(`${API_BASE}/admin/billing/export`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Admin ${adminToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `billing_statement_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showToast('Excel file downloaded', 'success');
+                } else {
+                    showToast('Failed to export', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Export failed', 'error');
+            }
+        }
+        
+        // Refresh data
+        function refreshData() {
+            loadData();
+            showToast('Data refreshed', 'success');
+        }
+        
+        // Logout
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.href = '/admin';
+        }
+        
+        // Initial load
+        loadData();
+    </script>
+</body>
+</html>
